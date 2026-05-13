@@ -1,12 +1,22 @@
 """
 Balmorel Results Analysis Tool — entrypoint.
 
+Two modes, same code:
+  • Local mode  — env var BALMOREL_ROOT is set (by `python -m
+                  balmorel_dashboard --serve <root>`). The dashboard
+                  auto-discovers every `<root>/*/output/zip_files/*.zip`
+                  and loads them on startup. Upload widget stays as an
+                  escape hatch.
+  • Cloud mode  — BALMOREL_ROOT is not set (Streamlit Community Cloud).
+                  Only the upload widget; users drag in archives.
+
 Uses `st.navigation` so the home page can be labelled "Tool Description"
-in the sidebar (instead of Streamlit's default "streamlit app"). The
-sidebar (uploader + filters) is rendered on every page since this script
-runs before each navigated page.
+in the sidebar (instead of Streamlit's default "streamlit app").
 """
 from __future__ import annotations
+
+import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -23,10 +33,48 @@ theme.apply()
 data.ensure_state()
 
 
+# ── Local-mode auto-load ────────────────────────────────────────────────────
+BALMOREL_ROOT = os.environ.get("BALMOREL_ROOT")
+
+
+def _autoload_from_root(root: str) -> None:
+    """Discover and ingest all `<root>/*/output/zip_files/*.zip` once per session."""
+    if st.session_state.get("_autoload_done") == root:
+        return
+    p = Path(root)
+    paths = sorted(p.glob("*/output/zip_files/MainResults_*.zip"))
+    if paths:
+        data.ingest_local_paths(paths)
+    st.session_state["_autoload_done"] = root
+
+
+if BALMOREL_ROOT:
+    _autoload_from_root(BALMOREL_ROOT)
+
+
+def _refresh_autoload() -> None:
+    """Force a rescan of the Balmorel root (e.g. user re-exported a scenario)."""
+    st.session_state.pop("_autoload_done", None)
+    if BALMOREL_ROOT:
+        _autoload_from_root(BALMOREL_ROOT)
+
+
 # ── Sidebar (runs on every page) ────────────────────────────────────────────
 def _render_sidebar() -> None:
     with st.sidebar:
         st.markdown("## 🔋 Balmorel Results")
+
+        if BALMOREL_ROOT:
+            # Local mode: announce auto-load + provide a Refresh button.
+            st.markdown(
+                f"📂 **Auto-loaded from**  \n"
+                f"<code style='font-size:11px;color:#555'>{BALMOREL_ROOT}</code>",
+                unsafe_allow_html=True,
+            )
+            if st.button("↻ Refresh", help="Re-scan the Balmorel root for new or updated archives"):
+                _refresh_autoload()
+                st.rerun()
+            st.caption("Drop additional archives below to compare.")
 
         uploaded = st.file_uploader(
             "📤 Upload scenario archive(s)",
@@ -151,69 +199,78 @@ def tool_description() -> None:
 
     # ── How to use ──────────────────────────────────────────────────────────
     st.markdown("### How to use")
-    st.markdown(
-        "1. **Generate archives.** On a machine with GAMS installed, point "
-        "the export CLI at a Balmorel run folder (the one containing `base/`, "
-        "`simex/`, and any named scenario folders):\n"
-        "   ```bash\n"
-        "   python -m balmorel_dashboard /path/to/Balmorel\n"
-        "   ```\n"
-        "   The CLI auto-discovers every scenario (any subfolder with "
-        "`model/MainResults.gdx`) and writes one `.zip` per scenario into "
-        "`<scenario>/output/zip_files/`.\n"
-        "2. **Upload.** Drag one or more `.zip` archives into the **📤 Upload "
-        "scenario archive(s)** box in the sidebar. Multiple uploads accumulate "
-        "as separate scenarios.\n"
-        "3. **Explore.** Use the navigation on the left — **Model Inputs**, "
-        "**Overview**, **Capacity**, **Production**, **Prices and Demand**, "
-        "**Planetary Boundaries**, **Transmission**, **Raw Explorer**. Pages "
-        "auto-hide if the relevant symbols aren't in the archive (e.g. PB "
-        "page hides without `TL_*` symbols).\n"
-        "4. **Filter.** Pick scenarios, year, and countries in the sidebar — "
-        "filters apply across all pages.\n"
-        "5. **Export.** Click the 📷 icon on any chart to download a PNG. "
-        "Most pages also offer CSV downloads of the underlying tables."
-    )
+    st.markdown("**👇 Two paths depending on whether you have Balmorel set up locally.**")
 
-    if not data.list_scenarios():
-        with st.expander("📦 First-time setup of the export CLI", expanded=False):
-            st.markdown("**One-time install on a machine with GAMS + Python:**")
+    path_a, path_b = st.columns(2, gap="large")
+
+    with path_a:
+        st.markdown("#### 🔧 You're a Balmorel user")
+        st.caption("Run Balmorel locally — has GAMS + Python.")
+        st.markdown(
+            "1. **One-time install** of the dashboard on your machine:\n"
+            "   ```bash\n"
+            "   git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
+            "   cd Balmorel_Results_Analysis_Tool\n"
+            "   pip install -r requirements-export.txt -e .\n"
+            "   ```\n"
+            "2. **One command does everything** — exports any out-of-date "
+            "scenarios, launches the dashboard, opens your browser:\n"
+            "   ```bash\n"
+            "   python -m balmorel_dashboard --serve /path/to/Balmorel\n"
+            "   ```\n"
+            "3. **Pick scenarios** from the sidebar (already pre-loaded) and "
+            "explore the pages on the left.\n\n"
+            "_That's it — no upload step, no separate launch._"
+        )
+        with st.expander("More options"):
             st.code(
-                "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
-                "cd Balmorel_Results_Analysis_Tool\n"
-                "pip install -r requirements-export.txt -e .",
+                "# Export only (no UI):\n"
+                "python -m balmorel_dashboard /path/to/Balmorel\n\n"
+                "# Re-view existing zips without GAMS available:\n"
+                "python -m balmorel_dashboard --serve --no-export /path/to/Balmorel\n\n"
+                "# See what's there:\n"
+                "python -m balmorel_dashboard --list-scenarios /path/to/Balmorel\n\n"
+                "# Limit to specific scenarios:\n"
+                "python -m balmorel_dashboard --serve /path/to/Balmorel \\\n"
+                "    --scenario base --scenario 1_Scenario_Nordics",
                 language="bash",
             )
+
+    with path_b:
+        st.markdown("#### 🤝 You're a collaborator")
+        st.caption("Don't have Balmorel — just want to view results someone shared.")
+        st.markdown(
+            "1. **Receive a `.zip`** from a Balmorel user (it's a portable "
+            "archive of one scenario's parquet tables — typically <1 MB).\n"
+            "2. **Visit the live app URL** and sign in with the email you "
+            "were approved with.\n"
+            "3. **Drag the `.zip`** into the **📤 Upload scenario archive(s)** "
+            "box in the sidebar. Multiple uploads accumulate as separate "
+            "scenarios you can compare.\n"
+            "4. **Explore** — Overview, Capacity, Production, Prices & Demand, "
+            "Planetary Boundaries, Transmission, Raw Explorer. Pages auto-hide "
+            "if their relevant symbols aren't in the archive.\n\n"
+            "_No install required._"
+        )
+        with st.expander("What's in a `.zip`?"):
             st.markdown(
-                "The `-e .` makes the `balmorel_dashboard` command available "
-                "from any working directory.\n\n"
-                "**Export every scenario in a Balmorel folder:**"
+                "- One parquet file per Balmorel output symbol (production, "
+                "capacity, prices, transmission, …)\n"
+                "- A `manifest.json` describing the scenario's coverage\n"
+                "- Filtered input parameters from `all_endofmodel.gdx` (capex, "
+                "demand, fuel costs, etc.) — used to populate the **📥 Model "
+                "Inputs** page\n\n"
+                "No GAMS install needed on the dashboard side; the archive is "
+                "fully self-contained."
             )
-            st.code(
-                "python -m balmorel_dashboard /path/to/Balmorel --verbose\n"
-                "# → writes <scenario>/output/zip_files/MainResults_<scenario>.zip\n"
-                "#   (one per discovered scenario, beside the scenario's own model/ folder)",
-                language="bash",
-            )
-            st.markdown("**Limit to specific scenarios:**")
-            st.code(
-                "python -m balmorel_dashboard /path/to/Balmorel \\\n"
-                "    --scenario base \\\n"
-                "    --scenario 1_Scenario_Nordics",
-                language="bash",
-            )
-            st.markdown("**Inspect what's there without exporting:**")
-            st.code(
-                "python -m balmorel_dashboard --list-scenarios /path/to/Balmorel",
-                language="bash",
-            )
-            st.caption(
-                "The CLI reads `MainResults.gdx` (outputs) plus filtered input "
-                "symbols from `all_endofmodel.gdx`, even when the latter is "
-                "several GB — only ~23 specific symbols are pulled so the read "
-                "is sub-second. The Model Inputs page is populated from these "
-                "input symbols."
-            )
+
+    st.divider()
+    st.markdown("### What's on every page")
+    st.markdown(
+        "Filter once in the sidebar (scenarios, year, countries) — filters apply across all pages. "
+        "Click the 📷 icon on any Plotly chart to download a PNG. Most pages also offer CSV "
+        "downloads of the underlying tables."
+    )
 
     st.divider()
 

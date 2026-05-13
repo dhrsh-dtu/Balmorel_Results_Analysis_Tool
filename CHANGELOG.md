@@ -5,6 +5,35 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.3.0] — 2026-05-13
+
+Local-first workflow: one command to export + launch + auto-load.
+
+### Added
+- **`--serve` mode**: `python -m balmorel_dashboard --serve /path/to/Balmorel`
+  does everything in one shot — incremental re-export of any out-of-date
+  scenarios, then launches Streamlit on localhost with all scenarios already
+  loaded in the sidebar. No upload step needed.
+- **Incremental export logic** (`needs_reexport`): a scenario is re-exported
+  only if its zip is missing or older than `MainResults.gdx` / `all_endofmodel.gdx`.
+  `--force-reexport` to override.
+- **`--no-export` flag**: with `--serve`, skip the export step. Useful when
+  re-viewing scenarios on a machine without GAMS installed.
+- **`--port` and `--no-browser` flags** for the local launch.
+- **Dashboard auto-load**: when the `BALMOREL_ROOT` environment variable is set
+  (which `--serve` does automatically), the dashboard discovers all
+  `<root>/*/output/zip_files/MainResults_*.zip` on first load and ingests them
+  into session state. Upload widget remains as an escape hatch.
+- **Sidebar shows `📂 Auto-loaded from <root>`** in local mode with a
+  ↻ Refresh button to re-scan after a new export.
+
+### Changed
+- **Tool Description page** has a two-column "How to use" — clearly separates
+  the Balmorel-user path (`--serve`) from the collaborator path (drag-drop a
+  `.zip`).
+- **README** restructured around the two paths; quick-start leads with the
+  one-command local workflow.
+
 ## [0.2.0] — 2026-05-13
 
 Major upgrade: model-input extraction + new **Model Inputs** dashboard page.

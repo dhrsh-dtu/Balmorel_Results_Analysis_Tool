@@ -114,6 +114,35 @@ def ingest_uploads(files: list["UploadedFile"]) -> None:
         st.session_state["scenarios"][scn.name] = scn
 
 
+def ingest_local_paths(paths: list[str | "os.PathLike"]) -> tuple[int, int]:
+    """Load each local .zip path into session state.
+
+    Used in local-launch mode (`--serve`) where the dashboard auto-discovers
+    archives under `<BALMOREL_ROOT>/*/output/zip_files/`.
+
+    Returns (n_loaded, n_skipped) — skipped means already in session state
+    with the same content hash.
+    """
+    import os as _os
+    loaded = 0
+    skipped = 0
+    for p in paths:
+        try:
+            with open(p, "rb") as fh:
+                payload = fh.read()
+            scn = _load_archive(payload, fallback_name=_os.path.basename(str(p)).removesuffix(".zip"))
+        except Exception as e:
+            st.sidebar.error(f"❌ Failed to load `{p}`: {e}")
+            continue
+        existing = st.session_state["scenarios"].get(scn.name)
+        if existing is not None and existing.archive_hash == scn.archive_hash:
+            skipped += 1
+            continue
+        st.session_state["scenarios"][scn.name] = scn
+        loaded += 1
+    return loaded, skipped
+
+
 def _load_archive(payload: bytes, fallback_name: str) -> Scenario:
     """Parse a .zip archive into a Scenario object.
 

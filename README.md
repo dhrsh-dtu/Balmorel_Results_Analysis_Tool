@@ -4,13 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-A simple post-analysis tool built on [pybalmorel](https://github.com/Mathias157/pybalmorel) for exploring results from [Balmorel](https://www.balmorel.com/) energy-system runs. Upload a processed results archive, get interactive plots for capacity, production, prices, transmission and planetary-boundary indicators.
+A simple post-analysis tool built on [pybalmorel](https://github.com/Mathias157/pybalmorel) for exploring results from [Balmorel](https://www.balmorel.com/) energy-system runs. Two paths to use it depending on whether you have Balmorel set up locally:
+
+- **🔧 Balmorel users:** one command exports your scenarios and launches the dashboard with everything pre-loaded — no uploads.
+- **🤝 Collaborators:** visit the live URL, drag in a `.zip` someone shared with you, explore. No install required.
 
 🔗 **Live app:** _(coming soon — deployed to Streamlit Community Cloud, access by approval)_
 
 ## Highlights
 
-- **Upload-and-go:** drag a `.zip` archive into the sidebar, get interactive plots immediately. No GAMS or Python install needed for viewers.
+- **One-command local use:** `python -m balmorel_dashboard --serve /path/to/Balmorel` exports any out-of-date scenarios and opens the dashboard with them pre-loaded.
+- **Cloud option for sharing:** same dashboard on Streamlit Cloud with email-allowlist access; collaborators drag-drop a `.zip`.
 - **Built on pybalmorel:** inherits the community's tech/fuel color palette and column conventions so figures match what other Balmorel researchers produce.
 - **Auto-adapts to the data:** the Planetary Boundaries page appears only when `TL_*` symbols are present; transmission tabs hide if a commodity isn't in the archive.
 - **One archive ≈ one scenario:** small (typically <1 MB), portable, easy to share or archive.
@@ -41,23 +45,32 @@ The input read is **filtered to specific symbols**, so even a 5 GB `all_endofmod
 
 ## Quick start
 
-### For users (viewing dashboards)
+### 🔧 Path A — you have Balmorel set up locally
 
-1. Visit the live app URL (above) and sign in with the email you were approved with.
-2. Drag a `.zip` archive into the sidebar's upload box.
-3. Explore the pages: Overview, Capacity, Production, Prices & Demand, Transmission, Planetary Boundaries, Raw Explorer.
-4. Click the camera icon on any chart to download as PNG.
-
-### For data producers (exporting from Balmorel)
-
-Install the export CLI on a machine with GAMS available:
+One-time install of the dashboard on your machine:
 
 ```bash
 git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git
 cd Balmorel_Results_Analysis_Tool
-pip install -r requirements-export.txt
-pip install -e .
+pip install -r requirements-export.txt -e .
 ```
+
+Then one command exports any out-of-date scenarios, launches the dashboard on `localhost:8501`, and opens your browser with all scenarios pre-loaded:
+
+```bash
+python -m balmorel_dashboard --serve /path/to/Balmorel
+```
+
+That's it. No upload step.
+
+### 🤝 Path B — you're a collaborator (no Balmorel install)
+
+1. Receive a `.zip` archive from a Balmorel user (it's portable, typically <1 MB).
+2. Visit the live app URL above and sign in with your approved email.
+3. Drag the `.zip` into the **📤 Upload scenario archive(s)** box in the sidebar.
+4. Explore.
+
+### Other ways to use the CLI
 
 Export every scenario in a Balmorel folder:
 
@@ -82,7 +95,12 @@ python -m balmorel_dashboard --list-scenarios /path/to/Balmorel
 ```
 
 Useful flags:
-- `--scenario <name>`: limit export; repeatable for several scenarios
+- `--serve`: after exporting, launch the local Streamlit dashboard with all scenarios pre-loaded
+- `--no-export`: with `--serve`, skip export and just launch on existing zips (no GAMS needed)
+- `--force-reexport`: with `--serve`, re-export everything (default is incremental: only re-runs scenarios whose GDX is newer than the existing zip)
+- `--port <n>`: with `--serve`, choose a different port (default 8501)
+- `--no-browser`: with `--serve`, don't auto-open the browser
+- `--scenario <name>`: limit export / serve; repeatable
 - `--gams-dir <path>`: GAMS install (default: auto-detected from `PATH`, `GAMS_SYSDIR`, or `GAMSDIR`)
 - `--list-scenarios`: discover scenarios + file sizes; no export
 - `-v` / `--verbose`: per-scenario timings
