@@ -152,22 +152,23 @@ def tool_description() -> None:
     # ── How to use ──────────────────────────────────────────────────────────
     st.markdown("### How to use")
     st.markdown(
-        "1. **Get an archive.** On a machine with GAMS installed, pass any "
-        "GDX path to the export CLI (full or relative path — you don't need "
-        "to `cd` anywhere first):\n"
+        "1. **Generate archives.** On a machine with GAMS installed, point "
+        "the export CLI at a Balmorel run folder (the one containing `base/`, "
+        "`simex/`, and any named scenario folders):\n"
         "   ```bash\n"
-        "   python -m balmorel_dashboard /path/to/MainResults_<scenario>.gdx\n"
+        "   python -m balmorel_dashboard /path/to/Balmorel\n"
         "   ```\n"
-        "   The `.zip` is written **next to the input file** by default "
-        "(e.g. `/path/to/MainResults_<scenario>.zip`). Use `-o some/folder` "
-        "to choose a different output directory, or pass several GDX paths "
-        "at once.\n"
+        "   The CLI auto-discovers every scenario (any subfolder with "
+        "`model/MainResults.gdx`) and writes one `.zip` per scenario into "
+        "`/path/to/Balmorel/zip_files/`.\n"
         "2. **Upload.** Drag one or more `.zip` archives into the **📤 Upload "
         "scenario archive(s)** box in the sidebar. Multiple uploads accumulate "
         "as separate scenarios.\n"
-        "3. **Explore.** Use the navigation on the left to open Overview, "
-        "Capacity, Production, and the other analysis pages. The Planetary "
-        "Boundaries page auto-hides if `TL_*` symbols are absent.\n"
+        "3. **Explore.** Use the navigation on the left — **Model Inputs**, "
+        "**Overview**, **Capacity**, **Production**, **Prices and Demand**, "
+        "**Planetary Boundaries**, **Transmission**, **Raw Explorer**. Pages "
+        "auto-hide if the relevant symbols aren't in the archive (e.g. PB "
+        "page hides without `TL_*` symbols).\n"
         "4. **Filter.** Pick scenarios, year, and countries in the sidebar — "
         "filters apply across all pages.\n"
         "5. **Export.** Click the 📷 icon on any chart to download a PNG. "
@@ -176,9 +177,7 @@ def tool_description() -> None:
 
     if not data.list_scenarios():
         with st.expander("📦 First-time setup of the export CLI", expanded=False):
-            st.markdown(
-                "**One-time install on a machine with GAMS + Python:**"
-            )
+            st.markdown("**One-time install on a machine with GAMS + Python:**")
             st.code(
                 "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
                 "cd Balmorel_Results_Analysis_Tool\n"
@@ -187,27 +186,32 @@ def tool_description() -> None:
             )
             st.markdown(
                 "The `-e .` makes the `balmorel_dashboard` command available "
-                "from any working directory, so step 2 below works no matter "
-                "where your GDX files live.\n\n"
-                "**Export a single GDX (the path can be anywhere on disk):**"
+                "from any working directory.\n\n"
+                "**Export every scenario in a Balmorel folder:**"
             )
             st.code(
-                "python -m balmorel_dashboard /work3/runs/MainResults_<scenario>.gdx --verbose\n"
-                "# → writes /work3/runs/MainResults_<scenario>.zip",
+                "python -m balmorel_dashboard /path/to/Balmorel --verbose\n"
+                "# → writes /path/to/Balmorel/zip_files/MainResults_<scenario>.zip",
                 language="bash",
             )
-            st.markdown(
-                "**Or batch-export many at once into a separate folder:**"
-            )
+            st.markdown("**Limit to specific scenarios:**")
             st.code(
-                "python -m balmorel_dashboard /work3/runs/MainResults_*.gdx --output-dir ./exports/",
+                "python -m balmorel_dashboard /path/to/Balmorel \\\n"
+                "    --scenario base \\\n"
+                "    --scenario 1_Scenario_Nordics",
+                language="bash",
+            )
+            st.markdown("**Inspect what's there without exporting:**")
+            st.code(
+                "python -m balmorel_dashboard --list-scenarios /path/to/Balmorel",
                 language="bash",
             )
             st.caption(
-                "The export CLI uses `gams.transfer` to read the GDX, applies "
-                "pybalmorel column conventions, and writes one parquet per "
-                "non-empty symbol plus a `manifest.json`. Only this step needs "
-                "GAMS — the dashboard itself runs anywhere."
+                "The CLI reads `MainResults.gdx` (outputs) plus filtered input "
+                "symbols from `all_endofmodel.gdx`, even when the latter is "
+                "several GB — only ~23 specific symbols are pulled so the read "
+                "is sub-second. The Model Inputs page is populated from these "
+                "input symbols."
             )
 
     st.divider()
@@ -281,13 +285,14 @@ def tool_description() -> None:
 # page must be listed here.
 pages = [
     st.Page(tool_description, title="Tool Description", icon="🔋", default=True, url_path=""),
-    st.Page("pages/1_📊_Overview.py",                 title="Overview",              icon="📊"),
-    st.Page("pages/2_⚡_Capacity.py",                  title="Capacity",              icon="⚡"),
-    st.Page("pages/3_🏭_Production.py",                title="Production",            icon="🏭"),
-    st.Page("pages/4_💰_Prices_and_Demand.py",         title="Prices and Demand",     icon="💰"),
-    st.Page("pages/5_🌍_Planetary_Boundaries.py",      title="Planetary Boundaries",  icon="🌍"),
-    st.Page("pages/6_🔌_Transmission.py",              title="Transmission",          icon="🔌"),
-    st.Page("pages/7_🔍_Raw_Explorer.py",              title="Raw Explorer",          icon="🔍"),
+    st.Page("pages/0_📥_Model_Inputs.py",              title="Model Inputs",          icon="📥"),
+    st.Page("pages/1_📊_Overview.py",                  title="Overview",              icon="📊"),
+    st.Page("pages/2_⚡_Capacity.py",                   title="Capacity",              icon="⚡"),
+    st.Page("pages/3_🏭_Production.py",                 title="Production",            icon="🏭"),
+    st.Page("pages/4_💰_Prices_and_Demand.py",          title="Prices and Demand",     icon="💰"),
+    st.Page("pages/5_🌍_Planetary_Boundaries.py",       title="Planetary Boundaries",  icon="🌍"),
+    st.Page("pages/6_🔌_Transmission.py",               title="Transmission",          icon="🔌"),
+    st.Page("pages/7_🔍_Raw_Explorer.py",               title="Raw Explorer",          icon="🔍"),
 ]
 
 pg = st.navigation(pages)

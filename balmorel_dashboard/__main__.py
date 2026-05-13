@@ -1,4 +1,12 @@
-"""CLI entry — `python -m balmorel_dashboard <gdx files…>`."""
+"""CLI entry — `python -m balmorel_dashboard /path/to/Balmorel-root`.
+
+Folder-mode only. The CLI discovers each scenario under the given root
+(any subfolder containing `model/MainResults.gdx`) and produces one
+`MainResults_<scenario>.zip` per scenario in `<root>/zip_files/`.
+
+The legacy file-mode (`python -m balmorel_dashboard /path/to/some.gdx`)
+was removed in 0.2.0 to keep the workflow simple.
+"""
 from __future__ import annotations
 
 import argparse
@@ -10,94 +18,80 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="balmorel-export",
         description=(
-            "Convert Balmorel MainResults GDX files to portable .zip archives "
-            "(parquet + manifest) for use with the Balmorel Results Analysis "
-            "Tool web dashboard."
+            "Convert a Balmorel run folder (containing `base/`, `simex/`, and "
+            "any number of named scenario folders) into one .zip archive per "
+            "scenario for use with the Balmorel Results Analysis Tool web "
+            "dashboard. Each archive bundles MainResults outputs (parquet/) "
+            "and model inputs (inputs/) from all_endofmodel.gdx."
         ),
     )
     parser.add_argument(
-        "gdx_files",
-        nargs="+",
+        "balmorel_root",
         type=Path,
-        help="One or more MainResults_*.gdx files",
+        help="Path to the Balmorel root folder (the one containing base/, simex/, "
+             "and named scenario folders like 1_Scenario_Nordics/, 1_Scenario_EU/).",
     )
     parser.add_argument(
-        "-o", "--output-dir",
-        type=Path,
-        default=None,
-        help="Directory to write the .zip archives (default: alongside each input)",
+        "--scenario",
+        action="append",
+        dest="scenarios",
+        help="Limit export to one or more named scenarios. Repeat for several "
+             "(e.g. --scenario base --scenario 1_Scenario_Nordics). "
+             "Default: export every scenario found.",
     )
     parser.add_argument(
         "--gams-dir",
         type=str,
         default=None,
-        help="Path to GAMS system directory (default: auto-detect from PATH)",
+        help="Path to GAMS system directory (default: auto-detected from PATH, "
+             "GAMS_SYSDIR, or GAMSDIR).",
     )
     parser.add_argument(
-        "--scenario-name",
-        type=str,
-        default=None,
-        help="Override scenario name (default: derived from filename)",
-    )
-    parser.add_argument(
-        "--result-type",
-        choices=["balmorel", "optiflow"],
-        default="balmorel",
-        help="Result type (default: balmorel)",
+        "--list-scenarios",
+        action="store_true",
+        help="Discover scenarios + file sizes and exit without exporting.",
     )
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
-        help="Verbose logging",
-    )
-    parser.add_argument(
-        "--list-symbols",
-        action="store_true",
-        help="Just list the symbols in each GDX (no export)",
+        help="Verbose per-scenario progress.",
     )
     args = parser.parse_args(argv)
 
-    # Deferred import — gamsapi/pybalmorel only needed when actually running
-    from balmorel_dashboard.exporter import export_one, inspect_gdx
+    # Deferred import — keeps `--help` working without GAMS available.
+    from balmorel_dashboard.exporter import export_balmorel_root, inspect_root
 
-    if len(args.gdx_files) > 1 and args.scenario_name:
-        print("error: --scenario-name cannot be combined with multiple input files",
-              file=sys.stderr)
+    if not args.balmorel_root.exists():
+        print(f"error: {args.balmorel_root} does not exist", file=sys.stderr)
+        return 2
+    if not args.balmorel_root.is_dir():
+        print(
+            f"error: {args.balmorel_root} is not a directory.\n"
+            f"This CLI now takes a Balmorel root folder, not a .gdx file. "
+            f"See `python -m balmorel_dashboard --help`.",
+            file=sys.stderr,
+        )
         return 2
 
-    if args.list_symbols:
-        for gdx in args.gdx_files:
-            if not gdx.exists():
-                print(f"error: {gdx} does not exist", file=sys.stderr)
-                continue
-            inspect_gdx(gdx, gams_system_directory=args.gams_dir)
+    if args.list_scenarios:
+        inspect_root(args.balmorel_root)
         return 0
 
-    exit_code = 0
-    for gdx in args.gdx_files:
-        if not gdx.exists():
-            print(f"error: {gdx} does not exist", file=sys.stderr)
-            exit_code = 1
-            continue
-        out_dir = args.output_dir or gdx.parent
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / f"{gdx.stem}.zip"
-        print(f"Exporting {gdx} → {out_path}")
-        try:
-            export_one(
-                gdx_path=gdx,
-                out_path=out_path,
-                scenario_name=args.scenario_name,
-                gams_system_directory=args.gams_dir,
-                result_type=args.result_type,
-                verbose=args.verbose,
-            )
-        except Exception as e:
-            print(f"  ❌ failed: {e}", file=sys.stderr)
-            exit_code = 1
-            continue
-        print("  ✅ done")
-    return exit_code
+    try:
+        written = export_balmorel_root(
+            args.balmorel_root,
+            gams_system_directory=args.gams_dir,
+            only_scenarios=args.scenarios,
+            verbose=args.verbose,
+        )
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    if not args.verbose:
+        for p in written:
+            print(f"✓ {p}")
+    return 0 if written else 1
 
 
 if __name__ == "__main__":

@@ -27,12 +27,17 @@ if TYPE_CHECKING:
 
 @dataclass
 class Scenario:
-    """A single loaded scenario, fully in-memory."""
+    """A single loaded scenario, fully in-memory.
+
+    `tables`  → output symbols from MainResults.gdx
+    `inputs`  → input symbols from all_endofmodel.gdx (empty for v0.1 archives)
+    """
 
     name: str
     archive_hash: str
     manifest: dict
     tables: dict[str, pd.DataFrame] = field(default_factory=dict)
+    inputs: dict[str, pd.DataFrame] = field(default_factory=dict)
 
     @property
     def years(self) -> list[str]:
@@ -45,6 +50,10 @@ class Scenario:
     @property
     def symbols(self) -> list[str]:
         return list(self.tables.keys())
+
+    @property
+    def input_symbols(self) -> list[str]:
+        return list(self.inputs.keys())
 
     @property
     def capabilities(self) -> dict[str, bool]:
@@ -106,7 +115,13 @@ def ingest_uploads(files: list["UploadedFile"]) -> None:
 
 
 def _load_archive(payload: bytes, fallback_name: str) -> Scenario:
-    """Parse a .zip archive into a Scenario object."""
+    """Parse a .zip archive into a Scenario object.
+
+    Layout:
+      manifest.json
+      parquet/<sym>.parquet     ← outputs (MainResults)
+      inputs/<sym>.parquet      ← inputs (all_endofmodel, schema_version ≥ 1.1)
+    """
     h = hashlib.sha256(payload).hexdigest()[:16]
     with zipfile.ZipFile(io.BytesIO(payload)) as zf:
         names = zf.namelist()
@@ -114,12 +129,20 @@ def _load_archive(payload: bytes, fallback_name: str) -> Scenario:
             raise ValueError("archive is missing manifest.json")
         manifest = json.loads(zf.read("manifest.json"))
         scenario_name = manifest.get("scenario_name") or fallback_name
+
         tables: dict[str, pd.DataFrame] = {}
+        inputs: dict[str, pd.DataFrame] = {}
         for nm in names:
-            if nm.endswith(".parquet"):
+            if nm.startswith("parquet/") and nm.endswith(".parquet"):
                 symbol = nm.removeprefix("parquet/").removesuffix(".parquet")
                 tables[symbol] = pd.read_parquet(io.BytesIO(zf.read(nm)))
-    return Scenario(name=scenario_name, archive_hash=h, manifest=manifest, tables=tables)
+            elif nm.startswith("inputs/") and nm.endswith(".parquet"):
+                symbol = nm.removeprefix("inputs/").removesuffix(".parquet")
+                inputs[symbol] = pd.read_parquet(io.BytesIO(zf.read(nm)))
+    return Scenario(
+        name=scenario_name, archive_hash=h,
+        manifest=manifest, tables=tables, inputs=inputs,
+    )
 
 
 # ── Filter helpers ───────────────────────────────────────────────────────────
@@ -503,3 +526,292 @@ def fmt_number(v: float | int | None, decimals: int = 1, unit: str = "") -> str:
     if abs(v) >= 1e3:
         return f"{v/1e3:,.{decimals}f}k{f' {unit}' if unit else ''}"
     return f"{v:,.{decimals}f}{f' {unit}' if unit else ''}"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Model Inputs helpers
+# ════════════════════════════════════════════════════════════════════════════
+
+def any_has_inputs(scenarios: list[Scenario] | None = None) -> bool:
+    """True if at least one selected scenario has model-input data."""
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    return any(s.capabilities.get("has_inputs") for s in scns)
+
+
+def get_input_table(symbol: str, scenarios: list[Scenario] | None = None) -> pd.DataFrame:
+    """Concatenate one input symbol across selected scenarios. Mirrors `get_table`."""
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    frames = []
+    for s in scns:
+        df = s.inputs.get(symbol)
+        if df is None or df.empty:
+            continue
+        if "Scenario" not in df.columns:
+            df = df.assign(Scenario=s.name)
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+# ── GDATA pivot ─────────────────────────────────────────────────────────────
+# GDATA is stored long-format: (Generation, Parameter, Value). The dashboard
+# wants it wide: each generation unit a row, each parameter a column.
+
+_GDATA_KEY_PARAMS = {
+    # Identity
+    "GDTYPE":         "Type",
+    "GDFUEL":         "Fuel",
+    "GDTECHGROUP":    "TechGroup",
+    "GDSUBTECHGROUP": "SubTechGroup",
+    # Costs (the headline ones for the Cost section)
+    "GDINVCOST0":     "Capex",
+    "GDOMFCOST0":     "FixedOM",
+    "GDOMVCOST0":     "VarOM",
+    "GDOMVCOSTIN":    "VarOMIn",
+    # Performance
+    "GDFE":           "FuelEff",
+    "GDCV":           "Cv",
+    "GDCB":           "Cb",
+    "GDLOADLOSS":     "LoadLoss",
+    "GDSTOLOSS":      "StorageLoss",
+    # Ramping
+    "GDRAMPUP":       "RampUp",
+    "GDRAMPDOWN":     "RampDown",
+    # Lifecycle
+    "GDFROMYEAR":     "FromYear",
+    "GDLASTYEAR":     "LastYear",
+    "GDLIFETIME":     "Lifetime",
+    # Emissions
+    "GDDESO2":        "SO2",
+    "GDNOX":          "NOX",
+    "GDCH4":          "CH4",
+}
+
+
+def pivot_gdata(scenario: Scenario, drop_all_nan: bool = True) -> pd.DataFrame:
+    """Pivot the GDATA long-form (Generation, Parameter, Value) into a wide table.
+
+    Returns a DataFrame indexed by Generation, with one column per GDATASET
+    parameter (renamed via `_GDATA_KEY_PARAMS` where possible).
+    """
+    df = scenario.inputs.get("GDATA")
+    if df is None or df.empty:
+        return pd.DataFrame()
+    # Pivot
+    pivot = df.pivot_table(
+        index="Generation", columns="Parameter", values="Value",
+        aggfunc="first", observed=True,
+    )
+    # Friendly column names (only for the ones we recognise; keep raw for others)
+    pivot = pivot.rename(columns=_GDATA_KEY_PARAMS)
+    if drop_all_nan:
+        pivot = pivot.dropna(axis=1, how="all")
+    return pivot
+
+
+# ── Sector inference ────────────────────────────────────────────────────────
+# Sectors are inferred from a combination of GDATA fields (Fuel, TechGroup)
+# and the unit name pattern. The heuristic is conservative and labelled
+# "Other / unknown" when uncertain.
+
+_SECTOR_BY_FUEL = {
+    # Heat-only fuels
+    "HEAT": "Heat", "WASTEHEAT": "Heat",
+    # Pure-electric fuels
+    "ELECTRIC": "Electricity", "WIND": "Electricity",
+    "SUN": "Electricity", "WATER": "Electricity", "NUCLEAR": "Electricity",
+}
+
+_SECTOR_BY_TECHGROUP_KEYWORDS = {
+    "HEAT":     "Heat",
+    "BOILER":   "Heat",
+    "STORAGE":  "Storage",
+    "ELECTRO":  "Hydrogen",   # ELECTROLYSER / ELECTROLYZER
+    "FUELCELL": "Hydrogen",
+    "STEAMREFORMING": "Hydrogen",
+    "H2":       "Hydrogen",
+    "WIND":     "Electricity",
+    "SOLAR":    "Electricity",
+    "HYDRO":    "Electricity",
+    "CONDENS":  "Electricity",
+    "CHP":      "Electricity & Heat (CHP)",
+}
+
+# Tokens in Balmorel generation-unit names → sector. Searched in order; the
+# first match wins. Tokens are checked as substrings of the unit name in upper
+# case, wrapped in word-ish delimiters so e.g. "_BO_" doesn't match "BIO".
+_NAME_TOKEN_TO_SECTOR: list[tuple[str, str]] = [
+    # Hydrogen
+    ("_ELYS_",   "Hydrogen"),
+    ("_ELZ_",    "Hydrogen"),
+    ("ELECTROLY","Hydrogen"),
+    ("_FC_",     "Hydrogen"),
+    ("FUELCELL", "Hydrogen"),
+    ("STEAMREFO","Hydrogen"),
+    ("_H2_",     "Hydrogen"),
+    ("METHANATION","Hydrogen"),
+    # Heat / district heating
+    ("_BO_",     "Heat"),
+    ("BOILER",   "Heat"),
+    ("_HP_",     "Heat"),     # heat pump
+    ("HEATPUMP", "Heat"),
+    ("_HS_",     "Storage"),  # heat storage
+    ("SOLARHEAT","Heat"),
+    ("SOLAR-HEAT","Heat"),
+    # Electricity — renewables
+    ("_WIN_",    "Electricity"),
+    ("WIND",     "Electricity"),
+    ("_SOL_",    "Electricity"),
+    ("_PV_",     "Electricity"),
+    ("SOLAR-PV", "Electricity"),
+    ("_RES_",    "Electricity"),   # reservoir hydro
+    ("_WTR_",    "Electricity"),   # water (hydro)
+    ("HYDRO",    "Electricity"),
+    ("NUCLEAR",  "Electricity"),
+    # Electricity — thermal (often CHP if Cv+Cb present)
+    ("_ST_",     "Electricity"),   # steam turbine
+    ("_GT_",     "Electricity"),   # gas turbine
+    ("_CC_",     "Electricity"),   # combined cycle
+    ("_CCGT_",   "Electricity"),
+    ("_GE_",     "Electricity"),   # gas engine
+    ("_ENG_",    "Electricity"),   # engine (gas/bio)
+    ("_CND_",    "Electricity"),   # condensing (electricity-only)
+    ("CONDENS",  "Electricity"),
+    ("BACKUP_E", "Electricity"),
+    ("BACKUP_H", "Heat"),
+    # Electricity storage
+    ("_ES_",     "Storage"),
+    ("BATT",     "Storage"),
+    ("BATTERY",  "Storage"),
+    # CCS
+    ("_CCS_",    "CCS"),
+    # Transport
+    ("BEV_",     "Transport"),
+    ("PHEV_",    "Transport"),
+    ("V2G_",     "Transport"),
+]
+
+
+def infer_sector(unit_name: str, fuel: str | None, tech_group: str | None) -> str:
+    """Best-effort mapping (unit_name, fuel, tech_group) → sector label."""
+    if fuel:
+        f = str(fuel).upper()
+        if f in _SECTOR_BY_FUEL:
+            return _SECTOR_BY_FUEL[f]
+    if tech_group:
+        tg = str(tech_group).upper()
+        for kw, sector in _SECTOR_BY_TECHGROUP_KEYWORDS.items():
+            if kw in tg:
+                return sector
+    # Name-token heuristic
+    u = unit_name.upper()
+    for token, sector in _NAME_TOKEN_TO_SECTOR:
+        if token in u:
+            return sector
+    return "Other / unknown"
+
+
+def gdata_with_sector(scenario: Scenario) -> pd.DataFrame:
+    """Return pivoted GDATA enriched with a `Sector` column.
+
+    Sector inference uses, in order:
+      1. Cross-reference with `G_CAP_YCRAF` from MainResults (the unit's
+         actual Commodity in this scenario) — bulletproof for deployed units.
+      2. CHP detector: if both Cv and Cb are present in GDATA, it's a CHP unit.
+      3. Storage detector: if GDSTOHLOAD or GDSTOHUNLD is present.
+      4. Name-token heuristic (`infer_sector`).
+    """
+    pivot = pivot_gdata(scenario)
+    if pivot.empty:
+        return pivot
+
+    # 1. Cross-reference with G_CAP_YCRAF
+    deployed_commodity: dict[str, str] = {}
+    cap = scenario.tables.get("G_CAP_YCRAF")
+    if cap is not None and not cap.empty and "Generation" in cap.columns and "Commodity" in cap.columns:
+        per_unit = cap.groupby("Generation", observed=True)["Commodity"].agg(set)
+        for unit, commodities in per_unit.items():
+            commodities = {str(c).title() for c in commodities if pd.notna(c)}
+            if not commodities:
+                continue
+            if commodities == {"Electricity", "Heat"}:
+                deployed_commodity[str(unit)] = "Electricity & Heat (CHP)"
+            elif len(commodities) == 1:
+                deployed_commodity[str(unit)] = next(iter(commodities))
+            else:
+                deployed_commodity[str(unit)] = " & ".join(sorted(commodities))
+
+    fuel_col = pivot["Fuel"] if "Fuel" in pivot.columns else None
+    tg_col   = pivot["TechGroup"] if "TechGroup" in pivot.columns else None
+    has_cv   = pivot["Cv"]  if "Cv"  in pivot.columns else None
+    has_cb   = pivot["Cb"]  if "Cb"  in pivot.columns else None
+    has_hsl  = pivot.get("GDSTOHLOAD") if "GDSTOHLOAD" in pivot.columns else None
+    has_hsu  = pivot.get("GDSTOHUNLD") if "GDSTOHUNLD" in pivot.columns else None
+
+    sectors = []
+    for idx in pivot.index:
+        idx_s = str(idx)
+        # 1. Deployed-capacity cross-ref wins if available
+        if idx_s in deployed_commodity:
+            sectors.append(deployed_commodity[idx_s])
+            continue
+        # 2. CHP detector
+        cv_v = has_cv.loc[idx] if has_cv is not None and idx in has_cv.index else None
+        cb_v = has_cb.loc[idx] if has_cb is not None and idx in has_cb.index else None
+        if pd.notna(cv_v) and pd.notna(cb_v):
+            sectors.append("Electricity & Heat (CHP)")
+            continue
+        # 3. Storage detector
+        hsl_v = has_hsl.loc[idx] if has_hsl is not None and idx in has_hsl.index else None
+        hsu_v = has_hsu.loc[idx] if has_hsu is not None and idx in has_hsu.index else None
+        if pd.notna(hsl_v) or pd.notna(hsu_v):
+            sectors.append("Storage")
+            continue
+        # 4. Name-token + (rarely populated) fuel/tech group
+        sectors.append(infer_sector(
+            idx_s,
+            fuel_col.loc[idx] if fuel_col is not None and idx in fuel_col.index else None,
+            tg_col.loc[idx] if tg_col is not None and idx in tg_col.index else None,
+        ))
+
+    pivot["Sector"] = sectors
+    return pivot.reset_index()
+
+
+# ── Demand summaries ────────────────────────────────────────────────────────
+
+def sectors_present(scenarios: list[Scenario] | None = None) -> dict[str, dict]:
+    """Detect which sectors the loaded scenarios actually cover.
+
+    Returns {sector_name: {"present": bool, "evidence": str}}. Always returns
+    all known sectors so the UI can show a consistent checklist.
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    out: dict[str, dict] = {
+        "Electricity": {"present": False, "evidence": ""},
+        "Heat":        {"present": False, "evidence": ""},
+        "Hydrogen":    {"present": False, "evidence": ""},
+        "Transport (EV)": {"present": False, "evidence": ""},
+        "Biomethane":  {"present": False, "evidence": ""},
+        "CCS":         {"present": False, "evidence": ""},
+    }
+    for s in scns:
+        sym = set(s.symbols) | set(s.input_symbols)
+        if any(k in sym for k in ("EL_PRICE_YCR", "EL_DEMAND_YCR", "DE")):
+            out["Electricity"]["present"] = True
+            out["Electricity"]["evidence"] = "DE, EL_DEMAND_YCR present"
+        if any(k in sym for k in ("H_DEMAND_YCRA", "DH")):
+            out["Heat"]["present"] = True
+            out["Heat"]["evidence"] = "DH / H_DEMAND_YCRA present"
+        if any(k in sym for k in ("H2_DEMAND_YCR", "HYDROGEN_DH2")):
+            out["Hydrogen"]["present"] = True
+            out["Hydrogen"]["evidence"] = "HYDROGEN_DH2 / H2_DEMAND_YCR present"
+        if any(k in sym for k in ("V2G_FLEX_Y", "BEV_TECH_DATA")):
+            out["Transport (EV)"]["present"] = True
+            out["Transport (EV)"]["evidence"] = "BEV_TECH_DATA / V2G_FLEX present"
+        if "BIOGASUPGRADING_DE" in sym or "METHANATION_DH2" in sym:
+            out["Biomethane"]["present"] = True
+            out["Biomethane"]["evidence"] = "BIOGASUPGRADING_DE / METHANATION_DH2 present"
+        if any(k.startswith("CCS_") for k in sym):
+            out["CCS"]["present"] = True
+            out["CCS"]["evidence"] = "CCS_* parameters present"
+    return out

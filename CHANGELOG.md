@@ -5,6 +5,53 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.2.0] — 2026-05-13
+
+Major upgrade: model-input extraction + new **Model Inputs** dashboard page.
+
+### Added
+- **📥 Model Inputs page** (new, sits between Tool Description and Overview
+  in nav). Five sections:
+  1. **Sectors covered** — auto-detected (Electricity, Heat, Hydrogen,
+     Transport, Biomethane, CCS).
+  2. **Technology portfolio** — full catalog grouped by inferred sector, with
+     cross-reference against `G_CAP_YCRAF` for deployed-unit accuracy.
+  3. **Cost inputs per technology** — capex, fixed/var O&M, lifetime, fuel
+     efficiency, with mean/median/min/max aggregator across units in each
+     sector + sortable per-unit table.
+  4. **Demand inputs** — DE, DH, HYDROGEN_DH2 with year selector and
+     active-scope filter (so a Nordics scenario shows Nordic regions, not
+     full-Europe inputs).
+  5. **Sector coupling** — exogenous-vs-endogenous demand decomposition for
+     Electricity and Hydrogen, showing how input demand becomes total served
+     demand via heat pumps, EVs, electrolysers, losses.
+- **Filtered input extraction** in exporter — pulls 23 specific symbols
+  (`GDATA`, `DE`, `DH`, `HYDROGEN_DH2`, `ANNUITYCG`, `CCS_*`, etc.) from
+  `all_endofmodel.gdx` in <1 second even for 5 GB files (uses GDX index lookup,
+  not full scan).
+- **Sector inference heuristic** (`lib.data.infer_sector` /
+  `gdata_with_sector`) — combines G_CAP_YCRAF deployed-commodity lookup, CHP
+  detector (Cv+Cb present), storage detector (GDSTOH* present), and name-token
+  patterns. Classifies ~90% of units on real data.
+- **GAMS_TO_FRIENDLY map extended** with input-side column names: `YYY → Year`,
+  `CCC → Country`, `GGG → Generation`, `GDATASET → Parameter`,
+  `DEUSER`/`DHUSER → Category`, `CCCRRRAAA → Location`.
+- **Manifest schema v1.1** — adds `inputs_loaded`, `inputs_empty`,
+  `inputs_missing`, `inputs_source`, capability `has_inputs`.
+
+### Changed
+- **Export CLI is now folder-mode only.** Pass a Balmorel root path; the CLI
+  auto-discovers every scenario containing `model/MainResults.gdx` and writes
+  `<root>/zip_files/MainResults_<scenario>.zip`. The legacy file-mode
+  (`python -m balmorel_dashboard /path/to/some.gdx`) was removed for clarity.
+- **`--list-scenarios`** replaces the old `--list-symbols` flag.
+- Tool Description page updated to reflect the new workflow.
+- `streamlit_app.py` adds Model Inputs to the navigation.
+
+### Tests
+- Integration tests rewritten for the folder-mode API. All 8 pass on real
+  data (Nordics scenario via `4_Balmorel_High_Res_PB_all_wo_FG_eq/` root).
+
 ## [0.1.0] — 2026-05-13
 
 First release: a Streamlit dashboard for exploring Balmorel results, with a

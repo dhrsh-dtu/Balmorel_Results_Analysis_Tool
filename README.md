@@ -25,13 +25,19 @@ GAMS GDX files can only be read by the GAMS Python API, which requires a full GA
 │ EXPORT (your machine, has GAMS)   │        │ DASHBOARD (Streamlit Cloud)       │
 │                                   │        │                                   │
 │ python -m balmorel_dashboard      │  .zip  │ Drag-drop the .zip in the sidebar │
-│   MainResults_Foo.gdx             │ ─────▶ │ Interactive plots, image export   │
+│   /path/to/Balmorel               │ ─────▶ │ Interactive plots, image export   │
 │                                   │        │                                   │
-│ → MainResults_Foo.zip             │        │ No GAMS required                  │
+│ → <root>/zip_files/               │        │ No GAMS required                  │
+│     MainResults_<scenario>.zip    │        │                                   │
 └───────────────────────────────────┘        └───────────────────────────────────┘
 ```
 
-You run the export CLI once per scenario on the machine where you ran Balmorel (it already has GAMS and pybalmorel). The resulting `.zip` contains parquet tables of every Balmorel symbol plus a manifest — small, portable, no GAMS dependency downstream.
+Point the CLI at your Balmorel root folder (the one containing `base/`, `simex/`, and any named scenarios). The CLI auto-discovers every scenario with a `model/MainResults.gdx` and produces one `.zip` per scenario in `<root>/zip_files/`. Each archive bundles:
+
+- **Outputs** — every non-empty symbol from `MainResults.gdx`, as parquet
+- **Inputs** — ~23 filtered parameters from `all_endofmodel.gdx` (GDATA, DE, DH, HYDROGEN_DH2, …) for the **Model Inputs** dashboard page
+
+The input read is **filtered to specific symbols**, so even a 5 GB `all_endofmodel.gdx` takes <1 second to process.
 
 ## Quick start
 
@@ -53,34 +59,34 @@ pip install -r requirements-export.txt
 pip install -e .
 ```
 
-Export a single GDX:
+Export every scenario in a Balmorel folder:
 
 ```bash
-python -m balmorel_dashboard MainResults_Nordics.gdx
-# → writes MainResults_Nordics.zip alongside the input
+python -m balmorel_dashboard /path/to/Balmorel --verbose
+# → writes /path/to/Balmorel/zip_files/MainResults_<scenario>.zip  (one per scenario)
 ```
 
-Export multiple at once:
+Limit to specific scenarios:
 
 ```bash
-python -m balmorel_dashboard MainResults_*.gdx --output-dir exports/ --verbose
+python -m balmorel_dashboard /path/to/Balmorel \
+    --scenario base \
+    --scenario 1_Scenario_Nordics
 ```
 
-Inspect a GDX without exporting:
+Inspect what's there without exporting (handy on a new run):
 
 ```bash
-python -m balmorel_dashboard --list-symbols MainResults_Nordics.gdx
+python -m balmorel_dashboard --list-scenarios /path/to/Balmorel
 ```
 
 Useful flags:
-- `-o` / `--output-dir`: where to write `.zip` files (default: next to each input)
-- `-v` / `--verbose`: per-symbol progress
-- `--gams-dir`: path to GAMS install (default: auto-detected from `PATH`, `GAMS_SYSDIR`, or `GAMSDIR`)
-- `--scenario-name`: override the scenario name (default: derived from filename, e.g. `MainResults_Nordics.gdx` → `Nordics`)
-- `--result-type`: `balmorel` (default) or `optiflow`
-- `--list-symbols`: print symbol table and exit without exporting
+- `--scenario <name>`: limit export; repeatable for several scenarios
+- `--gams-dir <path>`: GAMS install (default: auto-detected from `PATH`, `GAMS_SYSDIR`, or `GAMSDIR`)
+- `--list-scenarios`: discover scenarios + file sizes; no export
+- `-v` / `--verbose`: per-scenario timings
 
-The CLI uses `gams.transfer` under the hood and applies pre-defined column schemas (mirroring pybalmorel's `formatting.balmorel_mainresults_symbol_columns`) plus extensions for Planetary Boundary and V2G symbols.
+The CLI uses `gams.transfer` for output extraction and a filtered read for input extraction. Column names are normalised via `lib/schemas.GAMS_TO_FRIENDLY` so the dashboard sees the same convention as pybalmorel users do (Year, Country, Region, Generation, …).
 
 ### For developers (running the dashboard locally)
 

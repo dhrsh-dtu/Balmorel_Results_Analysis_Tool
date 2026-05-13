@@ -74,6 +74,7 @@ ALL_COLUMNS: dict[str, list[str]] = {**BALMOREL_COLUMNS, **PB_COLUMNS, **V2G_COL
 # the actual GDX (Balmorel has been quietly adding dimensions like
 # PRICE_CATEGORY to old symbols — schema-position-only rename misses these).
 GAMS_TO_FRIENDLY: dict[str, str] = {
+    # ── Output-side names (used by MainResults symbols) ────────────────
     "Y": "Year",
     "C": "Country",
     "RRR": "Region",
@@ -90,10 +91,17 @@ GAMS_TO_FRIENDLY: dict[str, str] = {
     "PRICE_CATEGORY": "Category",
     "VARIABLE_CATEGORY": "Category",
     "CATEGORY": "Category",
-    # OBJ_YCR uses SUBCATEGORY for cost-category labels
-    # (GENERATION_CAPITAL_COSTS, GENERATION_FIXED_COSTS, ...).
-    # Map to "Category" so downstream code works the same.
-    "SUBCATEGORY": "Category",
+    "SUBCATEGORY": "Category",   # OBJ_YCR uses SUBCATEGORY for cost-category labels
+
+    # ── Input-side names (used by all_endofmodel symbols) ──────────────
+    # Balmorel's input data uses the *parent* set names (3-letter form).
+    "YYY": "Year",
+    "CCC": "Country",
+    "GGG": "Generation",
+    "GDATASET": "Parameter",     # set of GDATA parameter labels (GDFE, GDCAPEX, etc.)
+    "DEUSER": "Category",        # electricity user category (residential, industry, …)
+    "DHUSER": "Category",        # heat user category
+    "CCCRRRAAA": "Location",     # universal location set
 }
 
 
