@@ -117,11 +117,20 @@ def _extract_symbol(sym, schema_columns: list[str] | None) -> pd.DataFrame | Non
     # ── 2. Rename GAMS canonical domain names to friendly names ────────────
     rename_map = {c: GAMS_TO_FRIENDLY[c] for c in df.columns if c in GAMS_TO_FRIENDLY}
     if rename_map:
-        # Handle clashes: if both Y and Year already exist (shouldn't happen, but be safe)
-        for src, dst in list(rename_map.items()):
-            if dst in df.columns and src in df.columns:
-                rename_map.pop(src)
-        df = df.rename(columns=rename_map)
+        # Two clash classes to defend against:
+        #  (a) target name already exists in the DataFrame (e.g. both 'Y' and 'Year')
+        #  (b) two source names map to the same target (e.g. CATEGORY + SUBCATEGORY → Category)
+        seen_targets: set[str] = set()
+        clean_map: dict[str, str] = {}
+        for src, dst in rename_map.items():
+            if dst in df.columns and src != dst:
+                continue  # target already present — keep source untouched
+            if dst in seen_targets:
+                continue  # another source already claimed this target
+            clean_map[src] = dst
+            seen_targets.add(dst)
+        if clean_map:
+            df = df.rename(columns=clean_map)
 
     # ── 3. (Optional) positional schema, only as a safety net for symbols
     #       that still have unrenamed columns AND match the schema length ──

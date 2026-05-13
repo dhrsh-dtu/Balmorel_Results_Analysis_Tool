@@ -90,6 +90,10 @@ GAMS_TO_FRIENDLY: dict[str, str] = {
     "PRICE_CATEGORY": "Category",
     "VARIABLE_CATEGORY": "Category",
     "CATEGORY": "Category",
+    # OBJ_YCR uses SUBCATEGORY for cost-category labels
+    # (GENERATION_CAPITAL_COSTS, GENERATION_FIXED_COSTS, ...).
+    # Map to "Category" so downstream code works the same.
+    "SUBCATEGORY": "Category",
 }
 
 
