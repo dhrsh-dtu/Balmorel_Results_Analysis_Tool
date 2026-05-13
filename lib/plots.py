@@ -266,6 +266,106 @@ def hourly_line(
 
 # ── PB radar (for the Planetary Boundaries page later) ──────────────────────
 
+def pb_transgression_bar(
+    df: pd.DataFrame,
+    *,
+    boundary: float = 1.0,
+    title: str | None = None,
+) -> go.Figure:
+    """Bar chart of TL values across scenarios for one indicator, with boundary line.
+
+    Expects columns: Scenario, TL.
+    """
+    if df.empty:
+        return _empty("No transgression data for this indicator.")
+    fig = px.bar(
+        df, x="Scenario", y="TL", color="Scenario",
+        title=title,
+        labels={"TL": "Transgression level (TL)"},
+    )
+    fig.add_hline(
+        y=boundary,
+        line_dash="dash",
+        line_color="#d35050",
+        annotation_text=f"Boundary (TL = {boundary})",
+        annotation_position="top right",
+    )
+    fig.update_layout(showlegend=False, height=320)
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>TL = %{y:.4f}<extra></extra>",
+    )
+    return fig
+
+
+def pb_attribution_stack(
+    df: pd.DataFrame,
+    *,
+    title: str | None = None,
+    value_label: str = "Impact score",
+) -> go.Figure:
+    """Stacked bar of impact-source contributions per scenario.
+
+    Expects columns: Scenario, Source, Value.
+    """
+    if df.empty:
+        return _empty("No attribution data available.")
+    source_colors = {
+        "Generation": "#006460",
+        "Electricity transmission": "#4589ff",
+        "H2 transmission": "#13EAC9",
+        "EVs": "#cd6f00",
+    }
+    fig = px.bar(
+        df,
+        x="Scenario",
+        y="Value",
+        color="Source",
+        color_discrete_map=source_colors,
+        title=title,
+        labels={"Value": value_label},
+    )
+    fig.update_layout(barmode="stack", height=380)
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.3e}<extra></extra>"
+    )
+    return fig
+
+
+def pb_fuel_breakdown_bar(
+    df: pd.DataFrame,
+    *,
+    group_by: str = "Fuel",
+    title: str | None = None,
+    value_label: str = "Impact score",
+    min_abs_value: float = 0.0,
+) -> go.Figure:
+    """Stacked bar of IS_*_FFF aggregated by Fuel or Technology, per scenario.
+
+    Expects columns: Scenario, <group_by>, Value.
+    """
+    if df.empty:
+        return _empty(f"No {group_by.lower()}-broken-down impact data.")
+    sub = df.copy()
+    if min_abs_value > 0:
+        sub = sub[sub["Value"].abs() >= min_abs_value]
+    if sub.empty:
+        return _empty("All values below the display threshold.")
+    fig = px.bar(
+        sub,
+        x="Scenario",
+        y="Value",
+        color=group_by,
+        color_discrete_map=TECH_FUEL_COLORS,
+        title=title,
+        labels={"Value": value_label},
+    )
+    fig.update_layout(barmode="relative", height=420)
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.3e}<extra></extra>"
+    )
+    return fig
+
+
 def pb_radar(values_by_scenario: dict[str, dict[str, float]], *, boundary: float = 1.0) -> go.Figure:
     """Radar/spider plot of TL_* values across scenarios.
 

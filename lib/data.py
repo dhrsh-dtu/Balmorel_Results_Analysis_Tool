@@ -289,6 +289,100 @@ def pages_overview_md() -> str:
     return "\n".join(rows)
 
 
+# ── Planetary boundary helpers ──────────────────────────────────────────────
+def pb_indicators_present(scenarios: list[Scenario] | None = None) -> list[str]:
+    """Return sorted list of PB indicator names (stripped of `TL_` prefix) that
+    appear in at least one selected scenario."""
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    inds: set[str] = set()
+    for s in scns:
+        for sym in s.symbols:
+            if sym.startswith("TL_"):
+                inds.add(sym.removeprefix("TL_"))
+    return sorted(inds)
+
+
+def pb_transgression_table(scenarios: list[Scenario] | None = None) -> pd.DataFrame:
+    """Long-format TL values across scenarios.
+
+    Columns: Scenario, Indicator, TL.
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    rows = []
+    for s in scns:
+        for sym, df in s.tables.items():
+            if sym.startswith("TL_") and not df.empty and "Value" in df.columns:
+                ind = sym.removeprefix("TL_")
+                # one row per indicator per scenario (sum across years if multi-year)
+                rows.append({"Scenario": s.name, "Indicator": ind,
+                             "TL": float(df["Value"].astype(float).sum())})
+    return pd.DataFrame(rows)
+
+
+def pb_attribution_table(indicator: str, scenarios: list[Scenario] | None = None) -> pd.DataFrame:
+    """Impact-score attribution for one PB indicator across scenarios.
+
+    Returns a long DataFrame with columns: Scenario, Source, Value.
+    Sources are Generation / Electricity transmission / H2 transmission / EVs.
+
+    Generation is the year-aggregate `IS_<ind>` value (or sum of IS_<ind>_FFF
+    when IS_<ind> itself is missing or empty).
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    rows = []
+    for s in scns:
+        def _agg(sym):
+            df = s.tables.get(sym)
+            if df is None or df.empty or "Value" not in df.columns:
+                return None
+            return float(df["Value"].astype(float).sum())
+
+        gen = _agg(f"IS_{indicator}")
+        if gen is None:
+            gen = _agg(f"IS_{indicator}_FFF")
+        x_el = _agg(f"IS_{indicator}_X")
+        x_h2 = _agg(f"IS_{indicator}_X_H2")
+        ev = _agg(f"IS_{indicator}_EV")
+
+        for label, v in [
+            ("Generation", gen),
+            ("Electricity transmission", x_el),
+            ("H2 transmission", x_h2),
+            ("EVs", ev),
+        ]:
+            if v is not None:
+                rows.append({"Scenario": s.name, "Source": label, "Value": v})
+    return pd.DataFrame(rows)
+
+
+def pb_fuel_breakdown(
+    indicator: str,
+    *,
+    group_by: str = "Fuel",
+    scenarios: list[Scenario] | None = None,
+) -> pd.DataFrame:
+    """Per-fuel (or per-technology) breakdown of `IS_<ind>_FFF` values."""
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    sym = f"IS_{indicator}_FFF"
+    frames = []
+    for s in scns:
+        df = s.tables.get(sym)
+        if df is None or df.empty:
+            continue
+        cols_present = [c for c in ("Scenario", group_by, "Value") if c in df.columns]
+        if "Value" not in cols_present:
+            continue
+        frames.append(df[cols_present])
+    if not frames:
+        return pd.DataFrame()
+    out = pd.concat(frames, ignore_index=True)
+    out = (
+        out.groupby(["Scenario", group_by], as_index=False, observed=True)["Value"]
+        .sum()
+    )
+    return out
+
+
 # ── Number formatters ───────────────────────────────────────────────────────
 def fmt_number(v: float | int | None, decimals: int = 1, unit: str = "") -> str:
     """Human-friendly number with thousands separator + unit. None → '—'."""
