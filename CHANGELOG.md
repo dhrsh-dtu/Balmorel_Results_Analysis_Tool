@@ -7,9 +7,16 @@ and this project adheres to [semantic versioning](https://semver.org).
 
 ## [0.3.0] — 2026-05-13
 
-Local-first workflow: one command to export + launch + auto-load.
+Local-first workflow: one-command setup + one-command launch.
 
 ### Added
+- **`environment.yml` + `setup.sh` / `setup.bat`**: one-command install.
+  `./setup.sh` (or `setup.bat` on Windows) creates a `balmorel-results-viz`
+  conda env with all deps if conda is available, falls back to `pip install`
+  in the current Python otherwise, then `pip install -e .` so the CLI works
+  from any directory. Also checks for a GAMS install on PATH/GAMS_SYSDIR/
+  GAMSDIR and prints a friendly warning if missing (not a hard error —
+  `--serve --no-export` still works).
 - **`--serve` mode**: `python -m balmorel_dashboard --serve /path/to/Balmorel`
   does everything in one shot — incremental re-export of any out-of-date
   scenarios, then launches Streamlit on localhost with all scenarios already
@@ -28,11 +35,13 @@ Local-first workflow: one command to export + launch + auto-load.
   ↻ Refresh button to re-scan after a new export.
 
 ### Changed
-- **Tool Description page** has a two-column "How to use" — clearly separates
-  the Balmorel-user path (`--serve`) from the collaborator path (drag-drop a
-  `.zip`).
+- **Tool Description page** has a tabbed "How to use" — clearly separates
+  the Balmorel-user path (`--serve`) from the collaborator path (drag-drop
+  a `.zip`); only one panel visible at a time, no column-collision.
 - **README** restructured around the two paths; quick-start leads with the
-  one-command local workflow.
+  one-command local workflow (`./setup.sh` then `--serve`).
+- **`base/` always listed first** in `--list-scenarios` and during batch
+  export.
 
 ## [0.2.0] — 2026-05-13
 

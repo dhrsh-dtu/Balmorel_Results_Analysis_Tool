@@ -209,19 +209,23 @@ def tool_description() -> None:
     with tab_balm:
         st.markdown(
             "You run Balmorel locally — have GAMS + Python on your machine.\n\n"
-            "**One-time install of the dashboard:**"
+            "**One-time setup** (creates the `balmorel-results-viz` conda env "
+            "if conda is available, or installs into your current Python "
+            "otherwise; warns if GAMS isn't on PATH):"
         )
         st.code(
             "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
             "cd Balmorel_Results_Analysis_Tool\n"
-            "pip install -r requirements-export.txt -e .",
+            "./setup.sh           # Linux / macOS\n"
+            "# setup.bat          # Windows",
             language="bash",
         )
         st.markdown(
-            "**One command does everything** — exports any out-of-date "
+            "**Then one command does everything** — exports any out-of-date "
             "scenarios, launches the dashboard, opens your browser:"
         )
         st.code(
+            "conda activate balmorel-results-viz\n"
             "python -m balmorel_dashboard --serve /path/to/Balmorel",
             language="bash",
         )

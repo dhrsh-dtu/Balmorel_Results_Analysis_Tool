@@ -1,0 +1,26 @@
+# Conda environment for Balmorel Results Analysis Tool
+#
+# Used by ./setup.sh (Linux/macOS) and setup.bat (Windows). Creates a
+# Python 3.11 env named "balmorel-results-viz" with all dashboard + export
+# dependencies pip-installed. The local package itself is installed
+# editable (-e .) by setup.sh after env creation, so the same checkout
+# stays in sync with the env.
+
+name: balmorel-results-viz
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # Webapp deps
+      - streamlit>=1.40
+      - pandas>=2.0
+      - pyarrow>=14
+      - numpy>=1.26
+      - plotly>=5.20
+      # Export CLI deps (these are the ones that need GAMS to be useful)
+      - pybalmorel>=1.0.0
+      - gamsapi[transfer]>=47.0
+      # Dev / testing
+      - pytest>=8

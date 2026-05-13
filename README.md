@@ -47,17 +47,21 @@ The input read is **filtered to specific symbols**, so even a 5 GB `all_endofmod
 
 ### 🔧 Path A — you have Balmorel set up locally
 
-One-time install of the dashboard on your machine:
+One-time setup (creates the `balmorel-results-viz` conda env if conda is available, or installs into your current Python if not):
 
 ```bash
 git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git
 cd Balmorel_Results_Analysis_Tool
-pip install -r requirements-export.txt -e .
+./setup.sh              # Linux/macOS
+# setup.bat             # Windows
 ```
 
-Then one command exports any out-of-date scenarios, launches the dashboard on `localhost:8501`, and opens your browser with all scenarios pre-loaded:
+`setup.sh` also sanity-checks that GAMS is reachable (warns if not — `--serve --no-export` still works without GAMS).
+
+Then activate the env and launch — one command exports any out-of-date scenarios, opens the dashboard with everything pre-loaded:
 
 ```bash
+conda activate balmorel-results-viz
 python -m balmorel_dashboard --serve /path/to/Balmorel
 ```
 
