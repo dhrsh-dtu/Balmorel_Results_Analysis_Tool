@@ -165,6 +165,166 @@ def production_share_donuts(
     return fig
 
 
+# ── Transmission ────────────────────────────────────────────────────────────
+
+def flow_matrix_heatmap(
+    df: pd.DataFrame,
+    *,
+    value_label: str = "TWh",
+    title: str | None = None,
+    colorscale: str = "Viridis",
+) -> go.Figure:
+    """From × To heatmap, one subplot per scenario, shared color scale.
+
+    Expects columns: Scenario, From, To, Value.
+    """
+    if df.empty or "From" not in df.columns or "To" not in df.columns:
+        return _empty("No flow data.")
+    scenarios = sorted(df["Scenario"].unique()) if "Scenario" in df.columns else ["(all)"]
+    all_regions = sorted(set(df["From"].unique()) | set(df["To"].unique()))
+    vmax = float(df["Value"].abs().max() or 1.0)
+
+    from plotly.subplots import make_subplots
+    fig = make_subplots(
+        rows=1, cols=len(scenarios),
+        subplot_titles=scenarios,
+        shared_yaxes=True,
+        horizontal_spacing=0.06,
+    )
+    for i, sc in enumerate(scenarios, start=1):
+        sub = df[df["Scenario"] == sc] if "Scenario" in df.columns else df
+        pivot = (
+            sub.pivot_table(index="From", columns="To", values="Value",
+                            aggfunc="sum", fill_value=0.0)
+            .reindex(index=all_regions, columns=all_regions, fill_value=0.0)
+        )
+        fig.add_trace(
+            go.Heatmap(
+                z=pivot.values,
+                x=pivot.columns.astype(str),
+                y=pivot.index.astype(str),
+                colorscale=colorscale,
+                zmin=0, zmax=vmax,
+                showscale=(i == len(scenarios)),
+                colorbar=dict(title=value_label) if i == len(scenarios) else None,
+                hovertemplate=("<b>From %{y} → To %{x}</b><br>"
+                               "%{z:.2f} " + value_label + "<extra></extra>"),
+            ),
+            row=1, col=i,
+        )
+    fig.update_layout(title=title, height=420 + 14 * len(all_regions))
+    fig.update_xaxes(tickangle=-45, title_text="To")
+    fig.update_yaxes(autorange="reversed", title_text="From")
+    return fig
+
+
+def net_trade_bar(
+    df: pd.DataFrame,
+    *,
+    region_col: str = "Country",
+    value_label: str = "TWh",
+    title: str | None = None,
+) -> go.Figure:
+    """Diverging bar chart of net exports per region across scenarios.
+
+    Expects columns: Scenario, <region_col>, Net.  Positive = net exporter.
+    """
+    if df.empty or region_col not in df.columns:
+        return _empty("No net-trade data.")
+    df = df.sort_values(["Scenario", "Net"], ascending=[True, False])
+    fig = px.bar(
+        df,
+        x="Net",
+        y=region_col,
+        color="Scenario",
+        orientation="h",
+        barmode="group",
+        title=title,
+        labels={"Net": f"Net exports ({value_label})  →"},
+    )
+    fig.add_vline(x=0, line_color="#1a1a1a", line_width=1)
+    fig.update_layout(height=320 + 30 * df[region_col].nunique())
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{y}</b><br>%{fullData.name}<br>"
+            "Net: %{x:,.2f} " + value_label + "<extra></extra>"
+        )
+    )
+    return fig
+
+
+def top_lines_bar(
+    df: pd.DataFrame,
+    *,
+    n: int = 15,
+    value_label: str = "GW",
+    title: str | None = None,
+) -> go.Figure:
+    """Top-N transmission lines by value.
+
+    Expects columns: Scenario, From, To, Value.  Lines are sorted by total Value
+    across selected scenarios.
+    """
+    if df.empty or "From" not in df.columns or "To" not in df.columns:
+        return _empty("No transmission line data.")
+    sub = df.copy()
+    sub["Line"] = sub["From"].astype(str) + " → " + sub["To"].astype(str)
+    totals = sub.groupby("Line", observed=True)["Value"].sum().abs().sort_values(ascending=False)
+    top = totals.head(n).index.tolist()
+    sub = sub[sub["Line"].isin(top)]
+    line_order = top  # preserve totals ranking
+    fig = px.bar(
+        sub,
+        x="Value",
+        y="Line",
+        color="Scenario",
+        barmode="group",
+        orientation="h",
+        category_orders={"Line": line_order[::-1]},
+        title=title,
+        labels={"Value": value_label, "Line": ""},
+    )
+    fig.update_layout(height=180 + 28 * len(top))
+    fig.update_traces(
+        hovertemplate=("<b>%{y}</b><br>%{fullData.name}<br>"
+                       "%{x:,.2f} " + value_label + "<extra></extra>")
+    )
+    return fig
+
+
+def utilization_heatmap(
+    df: pd.DataFrame,
+    *,
+    title: str | None = None,
+) -> go.Figure:
+    """Heatmap of line utilization (0–1+) across scenarios.
+
+    Expects columns: Scenario, From, To, Utilization.
+    """
+    if df.empty or "Utilization" not in df.columns:
+        return _empty("No utilization data.")
+    sub = df.copy()
+    sub["Line"] = sub["From"].astype(str) + " → " + sub["To"].astype(str)
+    pivot = sub.pivot_table(index="Line", columns="Scenario", values="Utilization",
+                             aggfunc="mean", fill_value=0.0)
+    # Sort lines by mean utilization across scenarios for readability
+    pivot = pivot.reindex(pivot.mean(axis=1).sort_values(ascending=False).index)
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=pivot.values,
+            x=pivot.columns.astype(str),
+            y=pivot.index.astype(str),
+            colorscale="Plasma",
+            zmin=0, zmax=max(float(pivot.values.max() or 1.0), 1.0),
+            colorbar=dict(title="Utilization"),
+            hovertemplate=("<b>%{y}</b><br>%{x}<br>"
+                           "Utilization: %{z:.1%}<extra></extra>"),
+        ),
+        layout=go.Layout(title=title, height=200 + 22 * len(pivot)),
+    )
+    return fig
+
+
 # ── Prices & demand ─────────────────────────────────────────────────────────
 
 def price_by_region_bar(

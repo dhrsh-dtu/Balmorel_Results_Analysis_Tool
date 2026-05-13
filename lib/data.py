@@ -289,6 +289,116 @@ def pages_overview_md() -> str:
     return "\n".join(rows)
 
 
+# ── Transmission helpers ────────────────────────────────────────────────────
+_REGION_TO_COUNTRY_LOOKUP_SYMBOLS = (
+    "G_CAP_YCRAF", "PRO_YCRAGF", "EL_PRICE_YCR", "EL_DEMAND_YCR",
+)
+
+
+def region_to_country_map(scenarios: list[Scenario] | None = None) -> dict[str, str]:
+    """Infer a Region → Country mapping by scanning symbols that have both columns.
+
+    Returns {} if no suitable symbol is available. Mapping is union across selected
+    scenarios; conflicts (same region in two countries) keep the first seen.
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    out: dict[str, str] = {}
+    for s in scns:
+        for sym in _REGION_TO_COUNTRY_LOOKUP_SYMBOLS:
+            df = s.tables.get(sym)
+            if df is None or df.empty:
+                continue
+            if "Region" not in df.columns or "Country" not in df.columns:
+                continue
+            for r, c in df[["Region", "Country"]].dropna().drop_duplicates().itertuples(index=False):
+                out.setdefault(str(r), str(c))
+            break  # one symbol per scenario is enough
+    return out
+
+
+def net_trade(symbol_flow: str, *, by: str = "Country",
+              scenarios: list[Scenario] | None = None) -> pd.DataFrame:
+    """Compute net trade (exports − imports) per region or country.
+
+    `symbol_flow` is something like 'X_FLOW_YCR'. Returns columns
+    [Scenario, by, Exports, Imports, Net].
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    r2c = region_to_country_map(scns) if by == "Country" else {}
+    rows = []
+    for s in scns:
+        df = s.tables.get(symbol_flow)
+        if df is None or df.empty or "From" not in df.columns or "To" not in df.columns:
+            continue
+        sub = df.copy()
+        if by == "Country":
+            sub["From_loc"] = sub["From"].map(r2c).fillna(sub["From"])
+            sub["To_loc"]   = sub["To"].map(r2c).fillna(sub["To"])
+            # Drop internal flows (within same country) — they're not real trade
+            sub = sub[sub["From_loc"] != sub["To_loc"]]
+        else:
+            sub["From_loc"] = sub["From"]
+            sub["To_loc"]   = sub["To"]
+        # Cast From_loc/To_loc to string to avoid categorical-fillna issues
+        sub["From_loc"] = sub["From_loc"].astype(str)
+        sub["To_loc"]   = sub["To_loc"].astype(str)
+        exports = sub.groupby(["From_loc"], as_index=False)["Value"].sum().rename(
+            columns={"From_loc": by, "Value": "Exports"})
+        imports = sub.groupby(["To_loc"], as_index=False)["Value"].sum().rename(
+            columns={"To_loc": by, "Value": "Imports"})
+        merged = exports.merge(imports, on=by, how="outer")
+        merged[["Exports", "Imports"]] = merged[["Exports", "Imports"]].fillna(0.0)
+        merged["Net"] = merged["Exports"] - merged["Imports"]
+        merged.insert(0, "Scenario", s.name)
+        rows.append(merged)
+    if not rows:
+        return pd.DataFrame(columns=["Scenario", by, "Exports", "Imports", "Net"])
+    return pd.concat(rows, ignore_index=True)
+
+
+def transmission_utilization(symbol_cap: str, symbol_flow: str,
+                              scenarios: list[Scenario] | None = None) -> pd.DataFrame:
+    """Utilization = flow_TWh / (capacity_GW × 8.760) per line.
+
+    Returns columns [Scenario, From, To, Capacity_GW, Flow_TWh, Utilization].
+    """
+    scns = scenarios if scenarios is not None else selected_scenarios()
+    HOURS = 8760 / 1000  # TWh = GW × 8760 h × 1e-3
+    rows = []
+    for s in scns:
+        cap = s.tables.get(symbol_cap)
+        flow = s.tables.get(symbol_flow)
+        if cap is None or flow is None or cap.empty or flow.empty:
+            continue
+
+        # Cast From/To to string up-front: gams.transfer returns them as
+        # categorical, which makes outer merges + fillna messy.
+        cap = cap.assign(From=cap["From"].astype(str), To=cap["To"].astype(str))
+        flow = flow.assign(From=flow["From"].astype(str), To=flow["To"].astype(str))
+
+        # Aggregate cap across Category (Exo/Endo) before merging
+        cap_agg = (
+            cap.groupby(["From", "To"], as_index=False)["Value"].sum()
+            .rename(columns={"Value": "Capacity_GW"})
+        )
+        flow_agg = (
+            flow.groupby(["From", "To"], as_index=False)["Value"].sum()
+            .rename(columns={"Value": "Flow_TWh"})
+        )
+        merged = cap_agg.merge(flow_agg, on=["From", "To"], how="outer")
+        # Fill only the numeric columns; leave From/To untouched
+        merged[["Capacity_GW", "Flow_TWh"]] = merged[["Capacity_GW", "Flow_TWh"]].fillna(0.0)
+        merged["Utilization"] = merged.apply(
+            lambda r: (r["Flow_TWh"] / (r["Capacity_GW"] * HOURS)) if r["Capacity_GW"] > 0 else 0.0,
+            axis=1,
+        )
+        merged.insert(0, "Scenario", s.name)
+        rows.append(merged)
+    if not rows:
+        return pd.DataFrame()
+    return pd.concat(rows, ignore_index=True)
+
+
 # ── Planetary boundary helpers ──────────────────────────────────────────────
 def pb_indicators_present(scenarios: list[Scenario] | None = None) -> list[str]:
     """Return sorted list of PB indicator names (stripped of `TL_` prefix) that
