@@ -1,0 +1,7 @@
+# Webapp dependencies (read by Streamlit Community Cloud)
+# No pybalmorel or gamsapi here — the dashboard does not need GAMS.
+streamlit>=1.40
+pandas>=2.2
+pyarrow>=15
+numpy>=2.0
+plotly>=5.20
