@@ -161,6 +161,111 @@ def any_scenario_has_capability(key: str) -> bool:
     return any(s.capabilities.get(key) for s in selected_scenarios())
 
 
+def delete_scenario(name: str) -> None:
+    """Remove a scenario from session state."""
+    scenarios = st.session_state.get("scenarios", {})
+    scenarios.pop(name, None)
+    st.session_state["scenarios"] = scenarios
+    # Also prune from selected list
+    sel = [s for s in st.session_state.get("selected_scenarios", []) if s != name]
+    st.session_state["selected_scenarios"] = sel
+
+
+# ── Filter helpers (apply sidebar filters to a DataFrame) ───────────────────
+def apply_filters(
+    df: pd.DataFrame,
+    *,
+    year: bool = True,
+    country: bool = True,
+) -> pd.DataFrame:
+    """Apply sidebar Year and Country filters to a DataFrame if the columns exist."""
+    if df.empty:
+        return df
+    out = df
+    if year and "Year" in out.columns:
+        yr = selected_year()
+        if yr is not None:
+            out = out[out["Year"].astype(str) == str(yr)]
+    if country and "Country" in out.columns:
+        countries = selected_countries()
+        if countries:
+            out = out[out["Country"].isin(countries)]
+    return out
+
+
+def get_filtered(symbol: str, **filter_kwargs) -> pd.DataFrame:
+    """Convenience: get_table + apply_filters in one call."""
+    return apply_filters(get_table(symbol), **filter_kwargs)
+
+
+# ── Summary helpers ─────────────────────────────────────────────────────────
+def scenario_summary(s: Scenario) -> dict:
+    """Per-scenario numbers for KPI display. All values are floats or ints."""
+    out: dict[str, float | int | None] = {
+        "name":         s.name,
+        "n_symbols":    len(s.symbols),
+        "n_years":      len(s.years),
+        "n_countries":  len(s.countries),
+        "total_cost":   None,
+        "el_capacity":  None,
+        "el_production": None,
+        "max_tl":       None,
+        "max_tl_indicator": None,
+    }
+
+    obj = s.tables.get("OBJ_YCR")
+    if obj is not None and not obj.empty:
+        out["total_cost"] = float(obj["Value"].sum())
+
+    cap = s.tables.get("G_CAP_YCRAF")
+    if cap is not None and not cap.empty and "Commodity" in cap.columns:
+        el = cap[cap["Commodity"] == "ELECTRICITY"]
+        out["el_capacity"] = float(el["Value"].sum())
+
+    pro = s.tables.get("PRO_YCRAGF")
+    if pro is not None and not pro.empty and "Commodity" in pro.columns:
+        el = pro[pro["Commodity"] == "ELECTRICITY"]
+        out["el_production"] = float(el["Value"].sum())
+
+    # Max planetary-boundary transgression (any TL_* symbol)
+    tl_max: float = 0.0
+    tl_at: str | None = None
+    for sym_name, df in s.tables.items():
+        if sym_name.startswith("TL_") and not df.empty and "Value" in df.columns:
+            v = float(df["Value"].max())
+            if v > tl_max:
+                tl_max = v
+                tl_at = sym_name.removeprefix("TL_")
+    if tl_at is not None:
+        out["max_tl"] = tl_max
+        out["max_tl_indicator"] = tl_at
+
+    return out
+
+
+def health_warnings(s: Scenario) -> list[str]:
+    """Light heuristic warnings about a scenario's data."""
+    warnings = []
+    failed = s.manifest.get("symbols_failed", [])
+    if failed:
+        warnings.append(f"⚠ {len(failed)} symbol(s) failed to extract: " +
+                        ", ".join(f["symbol"] for f in failed[:5]))
+    empty = s.manifest.get("symbols_empty", [])
+    if empty:
+        warnings.append(f"ℹ {len(empty)} symbol(s) empty (no records): " +
+                        ", ".join(empty[:5]))
+    # EPS in electricity price
+    el = s.tables.get("EL_PRICE_YCR")
+    if el is not None and "Value" in el.columns:
+        try:
+            zero_count = int((el["Value"].astype(float) == 0).sum())
+            if zero_count and zero_count == len(el):
+                warnings.append("⚠ All EL_PRICE_YCR values are 0 — check for EPS values or solver issues")
+        except (ValueError, TypeError):
+            pass
+    return warnings
+
+
 def pages_overview_md() -> str:
     """Brief markdown of which pages are useful given the loaded data."""
     has_pb = any(schemas.has_pb_symbols(s.symbols) for s in selected_scenarios())
@@ -175,3 +280,15 @@ def pages_overview_md() -> str:
         rows.append("- **🌍 Planetary Boundaries** — TL_*/IS_* indicators")
     rows.append("- **🔍 Raw Explorer** — every symbol, filterable, CSV export")
     return "\n".join(rows)
+
+
+# ── Number formatters ───────────────────────────────────────────────────────
+def fmt_number(v: float | int | None, decimals: int = 1, unit: str = "") -> str:
+    """Human-friendly number with thousands separator + unit. None → '—'."""
+    if v is None:
+        return "—"
+    if abs(v) >= 1e6:
+        return f"{v/1e6:,.{decimals}f}M{f' {unit}' if unit else ''}"
+    if abs(v) >= 1e3:
+        return f"{v/1e3:,.{decimals}f}k{f' {unit}' if unit else ''}"
+    return f"{v:,.{decimals}f}{f' {unit}' if unit else ''}"
