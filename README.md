@@ -51,10 +51,24 @@ python -m balmorel_dashboard MainResults_Nordics.gdx
 Export multiple at once:
 
 ```bash
-python -m balmorel_dashboard MainResults_*.gdx --output-dir exports/
+python -m balmorel_dashboard MainResults_*.gdx --output-dir exports/ --verbose
 ```
 
-The CLI auto-detects `balmorel` vs `optiflow` result types and applies pybalmorel's column conventions.
+Inspect a GDX without exporting:
+
+```bash
+python -m balmorel_dashboard --list-symbols MainResults_Nordics.gdx
+```
+
+Useful flags:
+- `-o` / `--output-dir`: where to write `.zip` files (default: next to each input)
+- `-v` / `--verbose`: per-symbol progress
+- `--gams-dir`: path to GAMS install (default: auto-detected from `PATH`, `GAMS_SYSDIR`, or `GAMSDIR`)
+- `--scenario-name`: override the scenario name (default: derived from filename, e.g. `MainResults_Nordics.gdx` → `Nordics`)
+- `--result-type`: `balmorel` (default) or `optiflow`
+- `--list-symbols`: print symbol table and exit without exporting
+
+The CLI uses `gams.transfer` under the hood and applies pre-defined column schemas (mirroring pybalmorel's `formatting.balmorel_mainresults_symbol_columns`) plus extensions for Planetary Boundary and V2G symbols.
 
 ### For developers (running the dashboard locally)
 
@@ -88,6 +102,20 @@ Balmorel_Results_Analysis_Tool/
 - Data format: **parquet** inside a zip archive — small (compressed), fast to read, types preserved, portable.
 - Pages auto-hide based on archive contents (e.g. the Planetary Boundaries page only shows when `TL_*` symbols are present).
 - Session-only state: uploaded archives live in the user's browser session; no cross-user data persistence.
+
+**Archive layout (.zip):**
+
+```
+MainResults_X.zip
+├── manifest.json              scenario name, years/countries/regions, symbol coverage, capabilities
+└── parquet/
+    ├── PRO_YCRAGF.parquet     one parquet per non-empty symbol
+    ├── G_CAP_YCRAF.parquet
+    ├── TL_CO2.parquet          (Planetary Boundary symbols if present)
+    └── ...
+```
+
+The manifest's `capabilities` flags (`has_pb`, `has_v2g`, `has_optiflow`) drive which dashboard pages are shown for that scenario. Symbols that exist in the GDX but contain no records are listed in `symbols_empty`; symbols that failed to extract are in `symbols_failed` with an error message.
 
 ## Access control
 

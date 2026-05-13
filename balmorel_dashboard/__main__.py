@@ -50,15 +50,28 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Verbose logging",
     )
+    parser.add_argument(
+        "--list-symbols",
+        action="store_true",
+        help="Just list the symbols in each GDX (no export)",
+    )
     args = parser.parse_args(argv)
 
-    # Deferred import — pybalmorel + gamsapi only needed when actually running
-    from balmorel_dashboard.exporter import export_one
+    # Deferred import — gamsapi/pybalmorel only needed when actually running
+    from balmorel_dashboard.exporter import export_one, inspect_gdx
 
     if len(args.gdx_files) > 1 and args.scenario_name:
         print("error: --scenario-name cannot be combined with multiple input files",
               file=sys.stderr)
         return 2
+
+    if args.list_symbols:
+        for gdx in args.gdx_files:
+            if not gdx.exists():
+                print(f"error: {gdx} does not exist", file=sys.stderr)
+                continue
+            inspect_gdx(gdx, gams_system_directory=args.gams_dir)
+        return 0
 
     exit_code = 0
     for gdx in args.gdx_files:
@@ -83,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ❌ failed: {e}", file=sys.stderr)
             exit_code = 1
             continue
-        print(f"  ✅ done")
+        print("  ✅ done")
     return exit_code
 
 
