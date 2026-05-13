@@ -208,6 +208,151 @@ def pb_radar(values_by_scenario: dict[str, dict[str, float]], *, boundary: float
     return fig
 
 
+# ── Capacity / production by country ────────────────────────────────────────
+
+def by_country_stacked_bar(
+    df: pd.DataFrame,
+    *,
+    color_by: str = "Technology",
+    value_label: str = "Value",
+    facet_by_commodity: bool = False,
+    min_value: float = 0.001,
+    title: str | None = None,
+) -> go.Figure:
+    """Stacked bar by Country, faceted by Scenario (or Scenario × Commodity).
+
+    Common shape for both `G_CAP_YCRAF` and `PRO_YCRAGF`. Expects Scenario, Country,
+    Commodity (optional), and the chosen `color_by` column.
+    """
+    if df.empty:
+        return _empty(f"No {value_label.lower()} data available.")
+    if color_by not in df.columns or "Country" not in df.columns:
+        return _empty(f"Missing required columns ({color_by}, Country).")
+
+    group_cols = ["Scenario", "Country", color_by]
+    facet = None
+    if facet_by_commodity and "Commodity" in df.columns:
+        group_cols.insert(2, "Commodity")  # Scenario, Country, Commodity, color_by
+        facet = "Commodity"
+
+    agg = df.groupby(group_cols, as_index=False, observed=True)["Value"].sum()
+    agg = agg[agg["Value"].abs() >= min_value]
+    if agg.empty:
+        return _empty("All values below the display threshold.")
+
+    n_scen = agg["Scenario"].nunique()
+    fig = px.bar(
+        agg,
+        x="Country",
+        y="Value",
+        color=color_by,
+        facet_col=facet or "Scenario",
+        facet_row="Scenario" if facet else None,
+        facet_col_spacing=0.04,
+        facet_row_spacing=0.08,
+        color_discrete_map=TECH_FUEL_COLORS,
+        title=title,
+        labels={"Value": value_label},
+    )
+    fig.update_layout(barmode="stack", height=320 + (140 * n_scen if facet else 200))
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:,.2f} " + value_label + "<extra></extra>"
+    )
+    return fig
+
+
+def country_tech_heatmap(
+    df: pd.DataFrame,
+    *,
+    rows: str = "Country",
+    cols: str = "Technology",
+    value_label: str = "Value",
+    title: str | None = None,
+    colorscale: str = "Tealgrn",
+    min_value: float = 0.0,
+) -> go.Figure:
+    """Heatmap: Country × Technology, with scenario as separate subplots.
+
+    Expects Scenario, Country (or Region), Technology (or Fuel), Value.
+    """
+    if df.empty or rows not in df.columns or cols not in df.columns:
+        return _empty(f"Missing columns for heatmap ({rows} × {cols}).")
+
+    agg = (
+        df.groupby(["Scenario", rows, cols], as_index=False, observed=True)["Value"]
+        .sum()
+    )
+    if min_value > 0:
+        agg = agg[agg["Value"].abs() >= min_value]
+    if agg.empty:
+        return _empty("All values below the display threshold.")
+
+    scenarios = sorted(agg["Scenario"].unique())
+    from plotly.subplots import make_subplots
+    n = len(scenarios)
+    fig = make_subplots(
+        rows=1, cols=n,
+        subplot_titles=scenarios,
+        shared_yaxes=True,
+        horizontal_spacing=0.04,
+    )
+    # Use a shared value range so colors are comparable across scenarios
+    vmax = agg["Value"].max()
+    for i, sc in enumerate(scenarios, start=1):
+        sub = agg[agg["Scenario"] == sc]
+        pivot = sub.pivot_table(index=rows, columns=cols, values="Value",
+                                aggfunc="sum", fill_value=0)
+        fig.add_trace(
+            go.Heatmap(
+                z=pivot.values,
+                x=pivot.columns.astype(str),
+                y=pivot.index.astype(str),
+                colorscale=colorscale,
+                zmin=0, zmax=vmax,
+                showscale=(i == n),
+                colorbar=dict(title=value_label) if i == n else None,
+                hovertemplate=f"<b>%{{y}}</b> × <b>%{{x}}</b><br>%{{z:.2f}} {value_label}<extra></extra>",
+            ),
+            row=1, col=i,
+        )
+    fig.update_layout(
+        title=title,
+        height=420 + 18 * pivot.shape[0],
+    )
+    fig.update_xaxes(tickangle=-45)
+    return fig
+
+
+# ── Table-with-download helper ──────────────────────────────────────────────
+
+def show_table_with_download(
+    df: pd.DataFrame,
+    *,
+    filename: str,
+    label: str = "📋 Show table",
+    fmt: str = "{:,.2f}",
+    expanded: bool = False,
+):
+    """Render a DataFrame in an expander with a CSV download button.
+
+    Streamlit-aware: imports streamlit lazily so non-app uses (tests) don't fail.
+    """
+    import streamlit as st  # lazy
+    with st.expander(label, expanded=expanded):
+        try:
+            styled = df.style.format(fmt)
+            st.dataframe(styled, use_container_width=True)
+        except Exception:
+            st.dataframe(df, use_container_width=True)
+        st.download_button(
+            "⬇ Download CSV",
+            data=df.to_csv().encode("utf-8"),
+            file_name=filename if filename.endswith(".csv") else f"{filename}.csv",
+            mime="text/csv",
+        )
+
+
 # ── Generic helpers (kept for older callers / future pages) ─────────────────
 
 def stacked_bar(
