@@ -152,11 +152,19 @@ def tool_description() -> None:
     # ── How to use ──────────────────────────────────────────────────────────
     st.markdown("### How to use")
     st.markdown(
-        "1. **Get an archive.** On a machine with GAMS and Python, run "
-        "`python -m balmorel_dashboard MainResults_<scenario>.gdx`. "
-        "This produces a `.zip` archive of parquet tables plus a manifest.\n"
+        "1. **Get an archive.** On a machine with GAMS installed, pass any "
+        "GDX path to the export CLI (full or relative path — you don't need "
+        "to `cd` anywhere first):\n"
+        "   ```bash\n"
+        "   python -m balmorel_dashboard /path/to/MainResults_Nordics.gdx\n"
+        "   ```\n"
+        "   The `.zip` is written **next to the input file** by default "
+        "(e.g. `/path/to/MainResults_Nordics.zip`). Use `-o some/folder` "
+        "to choose a different output directory, or pass several GDX paths "
+        "at once.\n"
         "2. **Upload.** Drag one or more `.zip` archives into the **📤 Upload "
-        "scenario archive(s)** box in the sidebar.\n"
+        "scenario archive(s)** box in the sidebar. Multiple uploads accumulate "
+        "as separate scenarios.\n"
         "3. **Explore.** Use the navigation on the left to open Overview, "
         "Capacity, Production, and the other analysis pages. The Planetary "
         "Boundaries page auto-hides if `TL_*` symbols are absent.\n"
@@ -167,21 +175,39 @@ def tool_description() -> None:
     )
 
     if not data.list_scenarios():
-        with st.expander("📦 Creating an archive — full command", expanded=False):
+        with st.expander("📦 First-time setup of the export CLI", expanded=False):
+            st.markdown(
+                "**One-time install on a machine with GAMS + Python:**"
+            )
             st.code(
                 "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
                 "cd Balmorel_Results_Analysis_Tool\n"
-                "pip install -r requirements-export.txt\n"
-                "python -m balmorel_dashboard MainResults_Nordics.gdx --verbose\n"
-                "# → produces MainResults_Nordics.zip",
+                "pip install -r requirements-export.txt -e .",
+                language="bash",
+            )
+            st.markdown(
+                "The `-e .` makes the `balmorel_dashboard` command available "
+                "from any working directory, so step 2 below works no matter "
+                "where your GDX files live.\n\n"
+                "**Export a single GDX (the path can be anywhere on disk):**"
+            )
+            st.code(
+                "python -m balmorel_dashboard /work3/runs/MainResults_Nordics.gdx --verbose\n"
+                "# → writes /work3/runs/MainResults_Nordics.zip",
+                language="bash",
+            )
+            st.markdown(
+                "**Or batch-export many at once into a separate folder:**"
+            )
+            st.code(
+                "python -m balmorel_dashboard /work3/runs/MainResults_*.gdx --output-dir ./exports/",
                 language="bash",
             )
             st.caption(
                 "The export CLI uses `gams.transfer` to read the GDX, applies "
-                "the column conventions documented in `lib/schemas.py`, and "
-                "writes one parquet per non-empty symbol plus a `manifest.json`. "
-                "Only this step requires a GAMS install — the dashboard itself "
-                "needs no GAMS, just pandas + plotly."
+                "pybalmorel column conventions, and writes one parquet per "
+                "non-empty symbol plus a `manifest.json`. Only this step needs "
+                "GAMS — the dashboard itself runs anywhere."
             )
 
     st.divider()
