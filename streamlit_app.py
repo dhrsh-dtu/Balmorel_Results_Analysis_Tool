@@ -156,10 +156,10 @@ def tool_description() -> None:
         "GDX path to the export CLI (full or relative path — you don't need "
         "to `cd` anywhere first):\n"
         "   ```bash\n"
-        "   python -m balmorel_dashboard /path/to/MainResults_Nordics.gdx\n"
+        "   python -m balmorel_dashboard /path/to/MainResults_<scenario>.gdx\n"
         "   ```\n"
         "   The `.zip` is written **next to the input file** by default "
-        "(e.g. `/path/to/MainResults_Nordics.zip`). Use `-o some/folder` "
+        "(e.g. `/path/to/MainResults_<scenario>.zip`). Use `-o some/folder` "
         "to choose a different output directory, or pass several GDX paths "
         "at once.\n"
         "2. **Upload.** Drag one or more `.zip` archives into the **📤 Upload "
@@ -192,8 +192,8 @@ def tool_description() -> None:
                 "**Export a single GDX (the path can be anywhere on disk):**"
             )
             st.code(
-                "python -m balmorel_dashboard /work3/runs/MainResults_Nordics.gdx --verbose\n"
-                "# → writes /work3/runs/MainResults_Nordics.zip",
+                "python -m balmorel_dashboard /work3/runs/MainResults_<scenario>.gdx --verbose\n"
+                "# → writes /work3/runs/MainResults_<scenario>.zip",
                 language="bash",
             )
             st.markdown(
