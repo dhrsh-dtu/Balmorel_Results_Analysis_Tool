@@ -77,26 +77,31 @@ def _derive_scenario_name(gdx_path: Path) -> str:
 # ── Per-symbol extraction ────────────────────────────────────────────────────
 
 def _extract_symbol(sym, schema_columns: list[str] | None) -> pd.DataFrame | None:
-    """Convert one gams.transfer symbol → DataFrame with cleaned column names.
+    """Convert one gams.transfer symbol → DataFrame with friendly column names.
 
-    Returns None if the symbol is empty.
+    Strategy: always rename GAMS-canonical domain names (Y, C, RRR, …) to the
+    Balmorel-community-friendly names (Year, Country, Region, …) via
+    `schemas.GAMS_TO_FRIENDLY`. This handles cases where Balmorel has quietly
+    added a dimension (e.g. PRICE_CATEGORY in EL_PRICE_YCR) that isn't in
+    pybalmorel's positional schema dict.
+
+    Returns None if the symbol has no records.
     """
     import gams.transfer as gt
+
+    # Local import to avoid circular: schemas imports nothing dashboard-specific
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from lib.schemas import GAMS_TO_FRIENDLY
 
     df = sym.records
     if df is None or len(df) == 0:
         return None
     df = df.copy()
 
-    # Identify the value-related column block depending on symbol type
+    # ── 1. Rename the value-related columns ────────────────────────────────
     if isinstance(sym, gt.Parameter):
-        # records: [domain cols ..., 'value']
-        value_block_n = 1
         df = df.rename(columns={"value": "Value"})
-        value_block_names = ["Value"]
     elif isinstance(sym, (gt.Variable, gt.Equation)):
-        # records: [domain cols ..., level, marginal, lower, upper, scale]
-        value_block_n = 5
         df = df.rename(columns={
             "level": "Value",
             "marginal": "Marginal",
@@ -104,25 +109,30 @@ def _extract_symbol(sym, schema_columns: list[str] | None) -> pd.DataFrame | Non
             "upper": "Upper",
             "scale": "Scale",
         })
-        value_block_names = ["Value", "Marginal", "Lower", "Upper", "Scale"]
     elif isinstance(sym, gt.Set):
-        # records: [domain cols ..., 'element_text']
-        value_block_n = 1
         df = df.rename(columns={"element_text": "ElementText"})
-        value_block_names = ["ElementText"]
     else:
         return None
 
-    n_domain = len(df.columns) - value_block_n
+    # ── 2. Rename GAMS canonical domain names to friendly names ────────────
+    rename_map = {c: GAMS_TO_FRIENDLY[c] for c in df.columns if c in GAMS_TO_FRIENDLY}
+    if rename_map:
+        # Handle clashes: if both Y and Year already exist (shouldn't happen, but be safe)
+        for src, dst in list(rename_map.items()):
+            if dst in df.columns and src in df.columns:
+                rename_map.pop(src)
+        df = df.rename(columns=rename_map)
 
-    # Apply schema column names where we can match
+    # ── 3. (Optional) positional schema, only as a safety net for symbols
+    #       that still have unrenamed columns AND match the schema length ──
     if schema_columns is not None:
-        if n_domain == len(schema_columns):
-            df.columns = schema_columns + value_block_names
-        elif n_domain == len(schema_columns) + 1:
-            # The "extra" column is conventionally a Unit dimension in Balmorel
-            df.columns = schema_columns + ["Unit"] + value_block_names
-        # else: count mismatch — leave the raw column names from gams.transfer
+        # Identify columns that are still raw (not friendly-renamed)
+        value_cols = ["Value", "Marginal", "Lower", "Upper", "Scale", "ElementText", "Unit"]
+        friendly_cols = set(GAMS_TO_FRIENDLY.values())
+        unrenamed = [c for c in df.columns if c not in friendly_cols and c not in value_cols]
+        if unrenamed and len(unrenamed) == len(schema_columns):
+            # Best-effort: positional rename of the unrenamed dim columns to the schema
+            df = df.rename(columns=dict(zip(unrenamed, schema_columns)))
 
     return df
 
@@ -195,10 +205,12 @@ def export_one(
     loaded: list[str] = []
     failed: list[dict] = []
     empty: list[str] = []
+    descriptions: dict[str, str] = {}
 
     for name in all_names:
         try:
             sym = container[name]
+            descriptions[name] = (sym.description or "").strip()
             schema_cols = schemas.ALL_COLUMNS.get(name)
             df = _extract_symbol(sym, schema_cols)
             if df is None:
@@ -234,6 +246,7 @@ def export_one(
         "symbols_loaded":  sorted(loaded),
         "symbols_empty":   sorted(empty),
         "symbols_failed":  failed,
+        "symbol_descriptions": {k: v for k, v in descriptions.items() if v},
         "capabilities":    capabilities,
         "exporter_version": "0.1.0",
     }

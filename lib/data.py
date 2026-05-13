@@ -50,6 +50,13 @@ class Scenario:
     def capabilities(self) -> dict[str, bool]:
         return self.manifest.get("capabilities", {})
 
+    @property
+    def descriptions(self) -> dict[str, str]:
+        return self.manifest.get("symbol_descriptions", {})
+
+    def describe(self, symbol: str) -> str:
+        return self.descriptions.get(symbol, "")
+
 
 # ── Session state ────────────────────────────────────────────────────────────
 def ensure_state() -> None:

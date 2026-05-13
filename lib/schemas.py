@@ -68,6 +68,31 @@ V2G_COLUMNS: dict[str, list[str]] = {
 ALL_COLUMNS: dict[str, list[str]] = {**BALMOREL_COLUMNS, **PB_COLUMNS, **V2G_COLUMNS}
 
 
+# ── Universal GAMS → friendly column rename ────────────────────────────────
+# Applied to EVERY extracted symbol so column names are stable in the
+# dashboard regardless of whether a per-symbol schema in ALL_COLUMNS matches
+# the actual GDX (Balmorel has been quietly adding dimensions like
+# PRICE_CATEGORY to old symbols — schema-position-only rename misses these).
+GAMS_TO_FRIENDLY: dict[str, str] = {
+    "Y": "Year",
+    "C": "Country",
+    "RRR": "Region",
+    "AAA": "Area",
+    "G": "Generation",
+    "FFF": "Fuel",
+    "COMMODITY": "Commodity",
+    "TECH_TYPE": "Technology",
+    "UNITS": "Unit",
+    "SSS": "Season",
+    "TTT": "Time",
+    "IRRRE": "From",
+    "IRRRI": "To",
+    "PRICE_CATEGORY": "Category",
+    "VARIABLE_CATEGORY": "Category",
+    "CATEGORY": "Category",
+}
+
+
 def has_pb_symbols(symbols: list[str]) -> bool:
     """True if any planetary-boundary symbols are present in the symbol list."""
     return any(s.startswith(("TL_", "IS_")) for s in symbols)

@@ -165,6 +165,105 @@ def production_share_donuts(
     return fig
 
 
+# ── Prices & demand ─────────────────────────────────────────────────────────
+
+def price_by_region_bar(
+    df: pd.DataFrame,
+    *,
+    region_col: str = "Region",
+    value_label: str = "money/MWh",
+    title: str | None = None,
+) -> go.Figure:
+    """Average price per region, grouped bars across scenarios."""
+    if df.empty or region_col not in df.columns:
+        return _empty(f"No price data ({region_col} not found).")
+    agg = df.groupby(["Scenario", region_col], as_index=False, observed=True)["Value"].mean()
+    fig = px.bar(
+        agg,
+        x=region_col,
+        y="Value",
+        color="Scenario",
+        barmode="group",
+        title=title,
+        labels={"Value": value_label},
+    )
+    fig.update_layout(height=420)
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y:.2f} " + value_label + "<extra></extra>"
+    )
+    return fig
+
+
+def demand_by_category_bar(
+    df: pd.DataFrame,
+    *,
+    category_col: str = "Category",
+    value_label: str = "TWh",
+    title: str | None = None,
+) -> go.Figure:
+    """Demand broken down by category, faceted by scenario."""
+    if df.empty:
+        return _empty("No demand data available.")
+    if category_col not in df.columns:
+        return _empty(f"`{category_col}` column missing in demand data.")
+    agg = (
+        df.groupby(["Scenario", category_col], as_index=False, observed=True)["Value"]
+        .sum()
+    )
+    agg = agg[agg["Value"].abs() > 0]
+    if agg.empty:
+        return _empty("All demand values are zero.")
+    fig = px.bar(
+        agg,
+        x=category_col,
+        y="Value",
+        color=category_col,
+        facet_col="Scenario",
+        facet_col_spacing=0.05,
+        title=title,
+        labels={"Value": value_label},
+    )
+    fig.update_layout(height=420, showlegend=False)
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{y:,.2f} " + value_label + "<extra></extra>"
+    )
+    fig.update_xaxes(tickangle=-25)
+    return fig
+
+
+def hourly_line(
+    df: pd.DataFrame,
+    *,
+    value_label: str = "money/MWh",
+    title: str | None = None,
+    color_by: str = "Scenario",
+) -> go.Figure:
+    """Hourly time-series line plot, ordered by Season+Time.
+
+    Expects columns: Scenario, Season, Time, Value. Optionally Region/Country.
+    """
+    if df.empty or "Season" not in df.columns or "Time" not in df.columns:
+        return _empty("No hourly data with Season/Time columns.")
+    # Create a sortable timestep label like S01-T001
+    df = df.copy()
+    df["_t"] = df["Season"].astype(str) + "-" + df["Time"].astype(str)
+    df = df.sort_values(["_t"])
+
+    fig = px.line(
+        df,
+        x="_t",
+        y="Value",
+        color=color_by,
+        title=title,
+        labels={"Value": value_label, "_t": "Season-Time"},
+    )
+    fig.update_layout(height=380, hovermode="x unified")
+    fig.update_traces(line=dict(width=1.2))
+    fig.update_xaxes(showticklabels=False)  # too many ticks; rely on hover
+    return fig
+
+
 # ── PB radar (for the Planetary Boundaries page later) ──────────────────────
 
 def pb_radar(values_by_scenario: dict[str, dict[str, float]], *, boundary: float = 1.0) -> go.Figure:
