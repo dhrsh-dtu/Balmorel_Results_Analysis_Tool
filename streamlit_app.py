@@ -199,30 +199,37 @@ def tool_description() -> None:
 
     # ── How to use ──────────────────────────────────────────────────────────
     st.markdown("### How to use")
-    st.markdown("**👇 Two paths depending on whether you have Balmorel set up locally.**")
+    st.caption("Pick the path that matches your setup:")
 
-    path_a, path_b = st.columns(2, gap="large")
+    tab_balm, tab_collab = st.tabs([
+        "🔧 I'm a Balmorel user",
+        "🤝 I'm a collaborator",
+    ])
 
-    with path_a:
-        st.markdown("#### 🔧 You're a Balmorel user")
-        st.caption("Run Balmorel locally — has GAMS + Python.")
+    with tab_balm:
         st.markdown(
-            "1. **One-time install** of the dashboard on your machine:\n"
-            "   ```bash\n"
-            "   git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
-            "   cd Balmorel_Results_Analysis_Tool\n"
-            "   pip install -r requirements-export.txt -e .\n"
-            "   ```\n"
-            "2. **One command does everything** — exports any out-of-date "
-            "scenarios, launches the dashboard, opens your browser:\n"
-            "   ```bash\n"
-            "   python -m balmorel_dashboard --serve /path/to/Balmorel\n"
-            "   ```\n"
-            "3. **Pick scenarios** from the sidebar (already pre-loaded) and "
-            "explore the pages on the left.\n\n"
-            "_That's it — no upload step, no separate launch._"
+            "You run Balmorel locally — have GAMS + Python on your machine.\n\n"
+            "**One-time install of the dashboard:**"
         )
-        with st.expander("More options"):
+        st.code(
+            "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
+            "cd Balmorel_Results_Analysis_Tool\n"
+            "pip install -r requirements-export.txt -e .",
+            language="bash",
+        )
+        st.markdown(
+            "**One command does everything** — exports any out-of-date "
+            "scenarios, launches the dashboard, opens your browser:"
+        )
+        st.code(
+            "python -m balmorel_dashboard --serve /path/to/Balmorel",
+            language="bash",
+        )
+        st.markdown(
+            "Pick scenarios from the sidebar (already pre-loaded) and explore "
+            "the pages on the left. **That's it — no upload step, no separate launch.**"
+        )
+        with st.expander("More CLI options"):
             st.code(
                 "# Export only (no UI):\n"
                 "python -m balmorel_dashboard /path/to/Balmorel\n\n"
@@ -236,21 +243,21 @@ def tool_description() -> None:
                 language="bash",
             )
 
-    with path_b:
-        st.markdown("#### 🤝 You're a collaborator")
-        st.caption("Don't have Balmorel — just want to view results someone shared.")
+    with tab_collab:
         st.markdown(
-            "1. **Receive a `.zip`** from a Balmorel user (it's a portable "
-            "archive of one scenario's parquet tables — typically <1 MB).\n"
-            "2. **Visit the live app URL** and sign in with the email you "
-            "were approved with.\n"
+            "You don't have Balmorel installed — you just want to view results "
+            "someone shared with you.\n\n"
+            "1. **Receive a `.zip`** from a Balmorel user (it's a portable archive "
+            "of one scenario's parquet tables — typically <1 MB).\n"
+            "2. **Visit the live app URL** and sign in with the email you were "
+            "approved with.\n"
             "3. **Drag the `.zip`** into the **📤 Upload scenario archive(s)** "
             "box in the sidebar. Multiple uploads accumulate as separate "
             "scenarios you can compare.\n"
             "4. **Explore** — Overview, Capacity, Production, Prices & Demand, "
             "Planetary Boundaries, Transmission, Raw Explorer. Pages auto-hide "
             "if their relevant symbols aren't in the archive.\n\n"
-            "_No install required._"
+            "**No install required.**"
         )
         with st.expander("What's in a `.zip`?"):
             st.markdown(
@@ -258,8 +265,8 @@ def tool_description() -> None:
                 "capacity, prices, transmission, …)\n"
                 "- A `manifest.json` describing the scenario's coverage\n"
                 "- Filtered input parameters from `all_endofmodel.gdx` (capex, "
-                "demand, fuel costs, etc.) — used to populate the **📥 Model "
-                "Inputs** page\n\n"
+                "demand, fuel costs, etc.) — used to populate the "
+                "**📥 Model Inputs** page\n\n"
                 "No GAMS install needed on the dashboard side; the archive is "
                 "fully self-contained."
             )
