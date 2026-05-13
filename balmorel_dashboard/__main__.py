@@ -89,8 +89,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if not args.verbose:
+        root_resolved = args.balmorel_root.resolve()
         for p in written:
-            print(f"✓ {p}")
+            try:
+                rel = p.relative_to(root_resolved)
+                print(f"✓ {rel}")
+            except ValueError:
+                # Shouldn't happen normally, but fall back to absolute
+                print(f"✓ {p}")
     return 0 if written else 1
 
 

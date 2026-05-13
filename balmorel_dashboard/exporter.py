@@ -92,8 +92,10 @@ def _find_gams_system_dir(explicit: str | None) -> str:
 def discover_scenarios(balmorel_root: Path) -> list[tuple[str, Path]]:
     """Walk a Balmorel root for scenario folders that have a `model/MainResults.gdx`.
 
-    Returns a sorted list of (scenario_name, model_folder_path).
-    Skips `simex/` and any non-scenario directories (no `model/` subfolder).
+    Returns a list of (scenario_name, model_folder_path), with `base` first
+    (Balmorel convention) and the rest alphabetical. Skips `simex/`, the
+    legacy root `zip_files/`, and any non-scenario directories (no `model/`
+    subfolder).
     """
     if not balmorel_root.is_dir():
         raise NotADirectoryError(f"{balmorel_root} is not a directory")
@@ -108,7 +110,31 @@ def discover_scenarios(balmorel_root: Path) -> list[tuple[str, Path]]:
         mr = model_dir / "MainResults.gdx"
         if mr.is_file():
             scenarios.append((child.name, model_dir))
+
+    # Sort: 'base' first (case-insensitive), then alphabetical
+    scenarios.sort(key=lambda t: (t[0].lower() != "base", t[0].lower()))
     return scenarios
+
+
+def scenario_zip_path(model_dir: Path, scenario_name: str) -> Path:
+    """Conventional destination: `<scn>/output/zip_files/MainResults_<scn>.zip`."""
+    return model_dir.parent / "output" / "zip_files" / f"MainResults_{scenario_name}.zip"
+
+
+def _check_legacy_root_zip_files(balmorel_root: Path) -> Path | None:
+    """Return the legacy `<root>/zip_files/` path if it exists, else None."""
+    legacy = balmorel_root / "zip_files"
+    return legacy if legacy.is_dir() else None
+
+
+def _fmt_size(n_bytes: int) -> str:
+    if n_bytes >= 1e9:
+        return f"{n_bytes/1e9:.1f} GB"
+    if n_bytes >= 1e6:
+        return f"{n_bytes/1e6:.1f} MB"
+    if n_bytes >= 1e3:
+        return f"{n_bytes/1e3:.1f} kB"
+    return f"{n_bytes} B"
 
 
 # ── Per-symbol extraction ──────────────────────────────────────────────────
@@ -359,11 +385,20 @@ def export_balmorel_root(
 ) -> list[Path]:
     """Discover scenarios under a Balmorel root and export each one.
 
-    Output zips go to `<balmorel_root>/zip_files/MainResults_<scenario>.zip`.
+    Output zips go to `<balmorel_root>/<scenario>/output/zip_files/MainResults_<scenario>.zip`.
     Returns the list of written archive paths.
     """
     balmorel_root = balmorel_root.resolve()
     sysdir = _find_gams_system_dir(gams_system_directory)
+
+    # Legacy folder check (single-line informational note)
+    legacy = _check_legacy_root_zip_files(balmorel_root)
+    if legacy is not None:
+        print(
+            f"ℹ Found legacy {legacy.relative_to(balmorel_root.parent)}/ — "
+            f"outputs now go to <scenario>/output/zip_files/. Safe to delete the old folder."
+        )
+
     if verbose:
         print(f"GAMS system directory: {sysdir}")
         print(f"Balmorel root:         {balmorel_root}")
@@ -386,14 +421,14 @@ def export_balmorel_root(
     if verbose:
         print(f"Scenarios found:       {', '.join(s[0] for s in scenarios)}\n")
 
-    out_dir = balmorel_root / "zip_files"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     written: list[Path] = []
     for sc_name, model_dir in scenarios:
         if verbose:
             print(f"━━ {sc_name} ━━")
-        out_path = out_dir / f"MainResults_{sc_name}.zip"
+        out_path = scenario_zip_path(model_dir, sc_name)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_path.exists():
+            print(f"  ↻ overwriting existing {out_path.name}")
         try:
             export_scenario(
                 scenario_name=sc_name,
@@ -415,9 +450,19 @@ def export_balmorel_root(
 # ── Inspection helper (used by --list-scenarios) ───────────────────────────
 
 def inspect_root(balmorel_root: Path) -> None:
-    """Print discovered scenarios + file sizes; no GAMS load needed."""
+    """Print discovered scenarios + file sizes + whether an export exists."""
+    from datetime import datetime
+
     balmorel_root = balmorel_root.resolve()
     print(f"\nBalmorel root: {balmorel_root}\n")
+
+    legacy = _check_legacy_root_zip_files(balmorel_root)
+    if legacy is not None:
+        print(
+            f"ℹ Found legacy {legacy.relative_to(balmorel_root.parent)}/ — "
+            f"outputs now go to <scenario>/output/zip_files/. Safe to delete.\n"
+        )
+
     try:
         scenarios = discover_scenarios(balmorel_root)
     except NotADirectoryError as e:
@@ -426,21 +471,27 @@ def inspect_root(balmorel_root: Path) -> None:
     if not scenarios:
         print("  No scenarios discovered (looking for <scenario>/model/MainResults.gdx).")
         return
-    print(f"{'Scenario':<30} {'MainResults':>14}  {'all_endofmodel':>16}  {'BALBASE4_p':>13}")
-    print("-" * 80)
+
+    print(
+        f"{'Scenario':<26} {'MainResults':>12}  {'all_endofmodel':>15}  "
+        f"{'BALBASE4_p':>12}  {'Exported?':<28}"
+    )
+    print("─" * 100)
     for name, model_dir in scenarios:
         mr = model_dir / "MainResults.gdx"
         em = model_dir / "all_endofmodel.gdx"
         bp = model_dir / "BALBASE4_p.gdx"
-        sizes = []
-        for p in (mr, em, bp):
-            if p.is_file():
-                size = p.stat().st_size
-                if size > 1e9:
-                    sizes.append(f"{size/1e9:.1f} GB")
-                else:
-                    sizes.append(f"{size/1e6:.1f} MB")
-            else:
-                sizes.append("—")
-        print(f"{name:<30} {sizes[0]:>14}  {sizes[1]:>16}  {sizes[2]:>13}")
+        sizes = [(_fmt_size(p.stat().st_size) if p.is_file() else "—") for p in (mr, em, bp)]
+
+        zip_path = scenario_zip_path(model_dir, name)
+        if zip_path.is_file():
+            zip_size = _fmt_size(zip_path.stat().st_size)
+            zip_mtime = datetime.fromtimestamp(zip_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+            exported = f"✓ {zip_size}, {zip_mtime}"
+        else:
+            exported = "—"
+
+        print(
+            f"{name:<26} {sizes[0]:>12}  {sizes[1]:>15}  {sizes[2]:>12}  {exported:<28}"
+        )
     print()

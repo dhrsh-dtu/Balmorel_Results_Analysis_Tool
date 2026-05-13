@@ -21,18 +21,18 @@ A simple post-analysis tool built on [pybalmorel](https://github.com/Mathias157/
 GAMS GDX files can only be read by the GAMS Python API, which requires a full GAMS install. Streamlit Community Cloud doesn't have GAMS, so we split:
 
 ```
-┌───────────────────────────────────┐        ┌───────────────────────────────────┐
-│ EXPORT (your machine, has GAMS)   │        │ DASHBOARD (Streamlit Cloud)       │
-│                                   │        │                                   │
-│ python -m balmorel_dashboard      │  .zip  │ Drag-drop the .zip in the sidebar │
-│   /path/to/Balmorel               │ ─────▶ │ Interactive plots, image export   │
-│                                   │        │                                   │
-│ → <root>/zip_files/               │        │ No GAMS required                  │
-│     MainResults_<scenario>.zip    │        │                                   │
-└───────────────────────────────────┘        └───────────────────────────────────┘
+┌────────────────────────────────────────────┐        ┌───────────────────────────────────┐
+│ EXPORT (your machine, has GAMS)            │        │ DASHBOARD (Streamlit Cloud)       │
+│                                            │        │                                   │
+│ python -m balmorel_dashboard /path/Balmorel│  .zip  │ Drag-drop the .zip in the sidebar │
+│                                            │ ─────▶ │ Interactive plots, image export   │
+│                                            │        │                                   │
+│ → <root>/<scenario>/output/zip_files/      │        │ No GAMS required                  │
+│       MainResults_<scenario>.zip           │        │                                   │
+└────────────────────────────────────────────┘        └───────────────────────────────────┘
 ```
 
-Point the CLI at your Balmorel root folder (the one containing `base/`, `simex/`, and any named scenarios). The CLI auto-discovers every scenario with a `model/MainResults.gdx` and produces one `.zip` per scenario in `<root>/zip_files/`. Each archive bundles:
+Point the CLI at your Balmorel root folder (the one containing `base/`, `simex/`, and any named scenarios). The CLI auto-discovers every scenario with a `model/MainResults.gdx` and produces one `.zip` per scenario inside that scenario's own `output/zip_files/` folder. Each archive bundles:
 
 - **Outputs** — every non-empty symbol from `MainResults.gdx`, as parquet
 - **Inputs** — ~23 filtered parameters from `all_endofmodel.gdx` (GDATA, DE, DH, HYDROGEN_DH2, …) for the **Model Inputs** dashboard page
@@ -63,7 +63,8 @@ Export every scenario in a Balmorel folder:
 
 ```bash
 python -m balmorel_dashboard /path/to/Balmorel --verbose
-# → writes /path/to/Balmorel/zip_files/MainResults_<scenario>.zip  (one per scenario)
+# → writes /path/to/Balmorel/<scenario>/output/zip_files/MainResults_<scenario>.zip
+#   (one .zip per scenario, beside the scenario's own model/ folder)
 ```
 
 Limit to specific scenarios:

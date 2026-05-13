@@ -160,7 +160,7 @@ def tool_description() -> None:
         "   ```\n"
         "   The CLI auto-discovers every scenario (any subfolder with "
         "`model/MainResults.gdx`) and writes one `.zip` per scenario into "
-        "`/path/to/Balmorel/zip_files/`.\n"
+        "`<scenario>/output/zip_files/`.\n"
         "2. **Upload.** Drag one or more `.zip` archives into the **📤 Upload "
         "scenario archive(s)** box in the sidebar. Multiple uploads accumulate "
         "as separate scenarios.\n"
@@ -191,7 +191,8 @@ def tool_description() -> None:
             )
             st.code(
                 "python -m balmorel_dashboard /path/to/Balmorel --verbose\n"
-                "# → writes /path/to/Balmorel/zip_files/MainResults_<scenario>.zip",
+                "# → writes <scenario>/output/zip_files/MainResults_<scenario>.zip\n"
+                "#   (one per discovered scenario, beside the scenario's own model/ folder)",
                 language="bash",
             )
             st.markdown("**Limit to specific scenarios:**")

@@ -42,9 +42,21 @@ Major upgrade: model-input extraction + new **Model Inputs** dashboard page.
 ### Changed
 - **Export CLI is now folder-mode only.** Pass a Balmorel root path; the CLI
   auto-discovers every scenario containing `model/MainResults.gdx` and writes
-  `<root>/zip_files/MainResults_<scenario>.zip`. The legacy file-mode
-  (`python -m balmorel_dashboard /path/to/some.gdx`) was removed for clarity.
-- **`--list-scenarios`** replaces the old `--list-symbols` flag.
+  one zip **inside each scenario's own `output/zip_files/` folder**
+  (e.g. `<root>/<scenario>/output/zip_files/MainResults_<scenario>.zip`).
+  The legacy file-mode (`python -m balmorel_dashboard /path/to/some.gdx`)
+  was removed for clarity.
+- **`base/` always listed first** in `--list-scenarios` and during batch
+  export, matching Balmorel's own convention.
+- **`--list-scenarios`** replaces the old `--list-symbols` flag and now shows
+  an "Exported?" column with the zip's size and mtime when present.
+- **Re-export prints `↻ overwriting existing …`** so it's visible when a
+  scenario's existing archive is being replaced.
+- **Non-verbose output uses paths relative to the Balmorel root** (e.g.
+  `✓ 1_Scenario_Nordics/output/zip_files/MainResults_1_Scenario_Nordics.zip`).
+- **Legacy `<root>/zip_files/` folder is detected** and a one-line note is
+  printed both on `--list-scenarios` and on actual export
+  (`ℹ Found legacy <root>/zip_files/ — Safe to delete.`).
 - Tool Description page updated to reflect the new workflow.
 - `streamlit_app.py` adds Model Inputs to the navigation.
 
