@@ -15,14 +15,28 @@ ENTRY_HOST="${1:-${BALMOREL_DASH_HOST:-}}"
 REPO_PATH="${BALMOREL_DASH_PATH:-}"
 PORT="${BALMOREL_DASH_PORT:-8501}"
 
-if [ -z "$ENTRY_HOST" ] || [ -z "$REPO_PATH" ]; then
+if [ -z "$REPO_PATH" ]; then
     cat >&2 <<EOF
-❌ Missing entry host or repo path.
-
-Pass the entry host as an argument or set BALMOREL_DASH_HOST + BALMOREL_DASH_PATH.
-See ./start_dashboard.sh for setup details.
+❌ BALMOREL_DASH_PATH not set. See ./start_dashboard.sh for setup details.
 EOF
     exit 1
+fi
+
+# Auto-derive entry host from /work3/<user>/ pattern (DTU HPC convention).
+if [ -z "$ENTRY_HOST" ]; then
+    case "$REPO_PATH" in
+        /work3/*/*)
+            AUTO_USER="${REPO_PATH#/work3/}"
+            AUTO_USER="${AUTO_USER%%/*}"
+            ENTRY_HOST="${AUTO_USER}@hpclogin1.hpccluster.dtu.dk"
+            ;;
+        *)
+            cat >&2 <<EOF
+❌ Couldn't auto-derive entry host. Set BALMOREL_DASH_HOST or pass as arg.
+EOF
+            exit 1
+            ;;
+    esac
 fi
 
 USER_PART="${ENTRY_HOST%%@*}"

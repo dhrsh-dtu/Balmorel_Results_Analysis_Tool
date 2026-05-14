@@ -85,18 +85,15 @@ If you'd rather pass paths on the command line instead of using env vars, both w
 
 #### 🔧 Path A' — start a remote dashboard from your laptop (one command)
 
-When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your laptop, `./start_dashboard.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
+When the dashboard runs on a remote host (e.g. DTU HPC) and you're sitting at your laptop, `./start_dashboard.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
 
-1. **One-time setup** in your laptop's `~/.bashrc` (or `~/.zshrc`), plus working SSH key auth:
+1. **One-time setup** — set just the repo path in your laptop's `~/.bashrc` (or `~/.zshrc`), and make sure SSH key auth to HPC works (no password prompts):
 
    ```bash
-   export BALMOREL_DASH_HOST="<user>@<any-login-node>"          # e.g. dhrsh@hpclogin1.hpccluster.dtu.dk
-   export BALMOREL_DASH_PATH="/path/to/Balmorel_Results_Analysis_Tool"  # absolute path on the remote
-   # Optional:
-   # export BALMOREL_DASH_PORT=8501
+   export BALMOREL_DASH_PATH="/work3/<your-user>/Balmorel/Balmorel_Results_Analysis_Tool"
    ```
 
-   `BALMOREL_DASH_HOST` is just an entry point — any login node will do, even if the tmux session ends up on a different one. The script reads a state file in the shared filesystem to find where the session actually lives.
+   On DTU HPC, the script derives the entry host automatically: any `/work3/<user>/…` path becomes `<user>@hpclogin1.hpccluster.dtu.dk` as the default. The state file (in HPC's shared filesystem) re-routes the tunnel to wherever the tmux session actually lives — `hpclogin1` is just a way in.
 
 2. **Start:**
 
@@ -104,7 +101,7 @@ When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your l
    ./start_dashboard.sh
    ```
 
-   Reads `<repo>/.dashboard_host` via the entry host; if a session is already running on a specific node (could be a different one than your entry host), the tunnel goes to that node. If no session exists yet, it starts one on whichever node ssh lands you on and records that node in the state file. Either way, the browser opens with the dashboard ready.
+   Opens an SSH tunnel and your browser, with the dashboard pre-loaded.
 
 3. **Stop:**
 
@@ -112,11 +109,13 @@ When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your l
    ./stop_dashboard.sh
    ```
 
-   Same auto-discovery — finds the actual session node, stops streamlit there, kills the local tunnel.
-
 Watch the remote logs at any time with `ssh $(cat .dashboard_host) -t "tmux attach -t balmorel-dash"` (Ctrl+b then d to detach).
 
-You can still pass a host as an argument (`./start_dashboard.sh user@hpclogin2.dtu.dk`) to override the env var for a one-off — useful when the configured entry host is unreachable.
+**Overrides** (rarely needed):
+
+- Pass a host explicitly for one off:  `./start_dashboard.sh user@some-other-node`
+- Or set `BALMOREL_DASH_HOST` in your shell to use a different default — needed if you're **not** on DTU HPC (other clusters won't match the `/work3/<user>/` pattern).
+- `BALMOREL_DASH_PORT=8501` if 8501 clashes with something on your laptop.
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 

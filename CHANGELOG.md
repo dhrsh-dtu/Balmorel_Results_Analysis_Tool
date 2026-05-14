@@ -5,6 +5,22 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.10.0] — 2026-05-14
+
+Remove the last shred of friction: one env var to set up the laptop side.
+
+### Changed
+- **`start_dashboard.sh` and `stop_dashboard.sh` auto-derive the entry host**
+  from `BALMOREL_DASH_PATH` when it matches `/work3/<user>/…` (DTU HPC
+  convention). Default entry becomes `<user>@hpclogin1.hpccluster.dtu.dk` —
+  the state file then re-routes the tunnel to whichever node actually
+  holds the session, so hpclogin1 is just a "way in", not a real lock-in.
+- **`BALMOREL_DASH_HOST` is now optional** — only needed when the repo
+  path doesn't match the DTU pattern (other clusters, non-`/work3/` paths)
+  or when you want a non-default entry node.
+- **README** Path A' reduced to two lines of setup (one `export`, one
+  `./start_dashboard.sh`).
+
 ## [0.9.0] — 2026-05-14
 
 Auto-discover which HPC login node holds the dashboard.

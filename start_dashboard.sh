@@ -21,16 +21,20 @@
 # tmux session actually lives.
 #
 # Usage:
-#   ./start_dashboard.sh                       # use $BALMOREL_DASH_HOST
+#   ./start_dashboard.sh                       # auto-derive entry host
 #   ./start_dashboard.sh user@hostname         # override entry host for this run
 #
 # Prerequisites on your laptop:
 #   • SSH key auth set up to the entry host (no password prompts)
-#   • These env vars (add to ~/.bashrc / ~/.zshrc to persist):
-#       BALMOREL_DASH_HOST   user@<entry-host>  (required, or pass as arg)
-#         e.g.  dhrsh@hpclogin1.hpccluster.dtu.dk  (any login node works)
+#   • One env var (add to ~/.bashrc / ~/.zshrc to persist):
 #       BALMOREL_DASH_PATH   absolute path to the repo on the remote (required)
 #         e.g.  /work3/dhrsh/Balmorel/Balmorel_Results_Analysis_Tool
+#
+#   On DTU HPC, the entry host is auto-derived from the path: any
+#   `/work3/<username>/…` path yields `<username>@hpclogin1.hpccluster.dtu.dk`
+#   as the default entry, and the state file re-routes to wherever the
+#   tmux session actually lives. To override (other HPCs, custom user):
+#       BALMOREL_DASH_HOST   user@<entry-host>  (optional)
 #       BALMOREL_DASH_PORT   port to forward (optional, default: 8501)
 #
 # Stop everything with: ./stop_dashboard.sh
@@ -41,22 +45,39 @@ ENTRY_HOST="${1:-${BALMOREL_DASH_HOST:-}}"
 REPO_PATH="${BALMOREL_DASH_PATH:-}"
 PORT="${BALMOREL_DASH_PORT:-8501}"
 
-if [ -z "$ENTRY_HOST" ] || [ -z "$REPO_PATH" ]; then
+if [ -z "$REPO_PATH" ]; then
     cat >&2 <<EOF
-❌ Missing entry host or repo path.
+❌ BALMOREL_DASH_PATH not set.
 
-Either pass the entry host as an argument:
-    ./start_dashboard.sh <user>@<any-login-node>
-
-Or set both env vars (add to ~/.bashrc / ~/.zshrc to persist):
-    export BALMOREL_DASH_HOST="<user>@<any-login-node>"
-        # e.g. dhrsh@hpclogin1.hpccluster.dtu.dk
+Add to your laptop ~/.bashrc / ~/.zshrc:
     export BALMOREL_DASH_PATH="/path/to/Balmorel_Results_Analysis_Tool"
         # absolute path on the remote host
-    # Optional:
-    # export BALMOREL_DASH_PORT=8501
 EOF
     exit 1
+fi
+
+# Auto-derive entry host from /work3/<user>/ pattern (DTU HPC convention).
+# Defaults to hpclogin1; state-file discovery re-routes if the session is
+# actually on a different login node.
+if [ -z "$ENTRY_HOST" ]; then
+    case "$REPO_PATH" in
+        /work3/*/*)
+            AUTO_USER="${REPO_PATH#/work3/}"
+            AUTO_USER="${AUTO_USER%%/*}"
+            ENTRY_HOST="${AUTO_USER}@hpclogin1.hpccluster.dtu.dk"
+            echo "▶ Auto-derived entry host: $ENTRY_HOST"
+            ;;
+        *)
+            cat >&2 <<EOF
+❌ Couldn't auto-derive entry host (BALMOREL_DASH_PATH not under /work3/<user>/).
+
+Pass one as an argument or set BALMOREL_DASH_HOST:
+    ./start_dashboard.sh <user>@<any-login-node>
+    export BALMOREL_DASH_HOST="<user>@<any-login-node>"
+EOF
+            exit 1
+            ;;
+    esac
 fi
 
 # Pull the user prefix off the entry host so we can re-build "user@<actual-node>"
