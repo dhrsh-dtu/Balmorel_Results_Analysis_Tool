@@ -58,20 +58,28 @@ cd Balmorel_Results_Analysis_Tool
 
 `setup.sh` also sanity-checks that GAMS is reachable (warns if not — the dashboard still works on already-exported zips even without GAMS).
 
-Activate the env, export your scenarios, then launch the dashboard — it auto-loads everything from `BALMOREL_ROOT`:
+Activate the env, set your paths, export scenarios, and launch the dashboard:
 
 ```bash
 conda activate balmorel-results-viz
 
-# 1. Export Balmorel scenarios to portable zip archives:
-python -m balmorel_dashboard /path/to/Balmorel
+# 1. Tell the CLI where GAMS lives (only needed if `gams` isn't on PATH).
+#    On DTU HPC this is /appl/gams/50.4.1.
+export GAMS_SYSDIR=/path/to/gams
 
-# 2. Tell the dashboard where to find them, then launch:
-export BALMOREL_ROOT=/path/to/Balmorel    # add to ~/.bashrc to persist
+# 2. Tell the dashboard which folder to auto-load (add both exports to ~/.bashrc to persist):
+export BALMOREL_ROOT=/path/to/Balmorel
+
+# 3. Export Balmorel scenarios to portable zip archives:
+python -m balmorel_dashboard $BALMOREL_ROOT
+
+# 4. Launch the dashboard:
 streamlit run streamlit_app.py --server.headless=true
 ```
 
 Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote host). Scenarios are pre-loaded; the upload widget stays available for ad-hoc archives.
+
+If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the sidebar text input in the dashboard for the folder.
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 

@@ -224,33 +224,47 @@ def tool_description() -> None:
             language="bash",
         )
         st.markdown(
+            "**Set environment variables** (add to `~/.bashrc` to persist across shells):"
+        )
+        st.code(
+            "export GAMS_SYSDIR=/path/to/gams          # for export only; e.g. /appl/gams/50.4.1 on DTU HPC\n"
+            "export BALMOREL_ROOT=/path/to/Balmorel    # tells the dashboard which folder to auto-load",
+            language="bash",
+        )
+        st.caption(
+            "`GAMS_SYSDIR` can be omitted if `gams` is already on `PATH`, or you can "
+            "pass `--gams-dir /path/to/gams` to the CLI at run time. `BALMOREL_ROOT` "
+            "is only needed for folder auto-load — leave unset to use the upload widget."
+        )
+        st.markdown(
             "**Export your scenarios** to portable `.zip` archives (one per scenario):"
         )
         st.code(
             "conda activate balmorel-results-viz\n"
-            "python -m balmorel_dashboard /path/to/Balmorel",
+            "python -m balmorel_dashboard $BALMOREL_ROOT",
             language="bash",
         )
         st.markdown(
-            "**Point the dashboard at the Balmorel root and launch:**"
+            "**Launch the dashboard:**"
         )
         st.code(
-            "export BALMOREL_ROOT=/path/to/Balmorel    # add to ~/.bashrc for persistence\n"
             "streamlit run streamlit_app.py --server.headless=true",
             language="bash",
         )
         st.markdown(
             "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
-            "if Streamlit runs on a remote machine). Scenarios pre-load from the "
-            "folder; the upload widget stays available for ad-hoc archives."
+            "if Streamlit runs on a remote machine). Scenarios pre-load from "
+            "`$BALMOREL_ROOT`; the upload widget stays available for ad-hoc archives."
         )
         with st.expander("Other CLI options"):
             st.code(
                 "# See what's there:\n"
-                "python -m balmorel_dashboard --list-scenarios /path/to/Balmorel\n\n"
+                "python -m balmorel_dashboard --list-scenarios $BALMOREL_ROOT\n\n"
                 "# Limit to specific scenarios:\n"
-                "python -m balmorel_dashboard /path/to/Balmorel \\\n"
-                "    --scenario base --scenario 1_Scenario_Nordics",
+                "python -m balmorel_dashboard $BALMOREL_ROOT \\\n"
+                "    --scenario base --scenario 1_Scenario_Nordics\n\n"
+                "# One-shot GAMS path (no env var needed):\n"
+                "python -m balmorel_dashboard --gams-dir /appl/gams/50.4.1 $BALMOREL_ROOT",
                 language="bash",
             )
 
