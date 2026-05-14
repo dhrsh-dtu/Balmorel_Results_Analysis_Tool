@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.9] — 2026-05-14
+
+### Changed
+- **"I'm a Balmorel user" tab restructured** to closed-by-default
+  expanders — one per step (1️⃣ Setup, 2️⃣ Import Results, 3️⃣ Run Dashboard).
+  Intro paragraph ("You run Balmorel on HPC. Three steps…") removed.
+  Tab now reads as three clickable rows, expand only what you need.
+
 ## [0.14.8] — 2026-05-14
 
 ### Changed
