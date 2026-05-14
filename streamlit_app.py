@@ -104,16 +104,22 @@ def tool_description() -> None:
         )
 
         st.markdown("#### 1️⃣ Setup")
+        st.markdown(
+            "**One-time only.** Clone the repo + run `setup.sh` to create "
+            "the conda env, then add three lines to your HPC `~/.bashrc` so "
+            "every shell auto-activates the env and knows which run folder "
+            "to load — no per-session typing later."
+        )
         st.code(
             "# Clone + install (creates the balmorel-results-viz conda env):\n"
             "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
             "cd Balmorel_Results_Analysis_Tool\n"
             "./setup.sh                          # Linux/macOS\n"
             "\n"
-            "# Add to HPC ~/.bashrc:\n"
-            "source /path/to/miniconda3/etc/profile.d/conda.sh\n"
-            "conda activate balmorel-results-viz\n"
-            "export BALMOREL_ROOT=/path/to/your/Balmorel/run",
+            "# Add these three lines to ~/.bashrc on HPC — set once, forget forever:\n"
+            "source /path/to/miniconda3/etc/profile.d/conda.sh    # find conda\n"
+            "conda activate balmorel-results-viz                  # activate dashboard env\n"
+            "export BALMOREL_ROOT=/path/to/your/Balmorel/run      # which run to auto-load",
             language="bash",
         )
         st.caption(

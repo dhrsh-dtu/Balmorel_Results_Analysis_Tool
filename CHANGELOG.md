@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.3] — 2026-05-14
+
+### Changed
+- **Reframe setup phase in Tool Description and README** to emphasize
+  that the three `~/.bashrc` lines are one-time setup ("set once, forget
+  forever"), not per-session ceremony. Each line in the code block now
+  has an inline comment explaining its role (`# find conda`, `# activate
+  dashboard env`, `# which run to auto-load`). No behavioural changes —
+  pure copy refresh.
+
 ## [0.14.2] — 2026-05-14
 
 ### Changed
