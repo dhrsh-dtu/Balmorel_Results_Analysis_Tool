@@ -5,6 +5,24 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.6.0] — 2026-05-14
+
+Free the terminal: one-command background launch.
+
+### Added
+- **`launch.sh`** — backgrounds streamlit so the terminal stays usable for
+  other commands. Auto-detects `tmux` (re-attachable, survives SSH
+  disconnect) and falls back to `nohup` + log file when `tmux` isn't
+  available. Refuses to start a duplicate if one is already running.
+- **`stop.sh`** — tears down both the tmux session and any streamlit
+  process running `streamlit_app.py` for this repo. Safe to re-run.
+
+### Changed
+- **README** Path A quick-start and **Tool Description** "I'm a Balmorel
+  user" tab now point at `./launch.sh` as the primary launch path; running
+  `streamlit run streamlit_app.py` directly remains documented for
+  interactive log viewing during debugging.
+
 ## [0.5.0] — 2026-05-14
 
 Separate "what is this tool" from "how do I load my data".

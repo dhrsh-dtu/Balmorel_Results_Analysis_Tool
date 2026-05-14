@@ -73,13 +73,15 @@ export BALMOREL_ROOT=/path/to/Balmorel
 # 3. Export Balmorel scenarios to portable zip archives:
 python -m balmorel_dashboard $BALMOREL_ROOT
 
-# 4. Launch the dashboard:
-streamlit run streamlit_app.py --server.headless=true
+# 4. Launch the dashboard in the background (terminal stays usable):
+./launch.sh
 ```
 
-Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote host). Scenarios are pre-loaded; the upload widget stays available for ad-hoc archives.
+`launch.sh` backgrounds streamlit using `tmux` when available (attach later with `tmux attach -t balmorel-dash` to see live logs) and falls back to `nohup` + log file when it isn't. Stop with `./stop.sh`.
 
-If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the sidebar text input in the dashboard for the folder.
+Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote host). Scenarios are pre-loaded; head to the **📂 Import Results** page to upload more or change the folder path.
+
+If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the text input on Import Results for the folder. To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./launch.sh`.
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 

@@ -125,17 +125,21 @@ def tool_description() -> None:
             language="bash",
         )
         st.markdown(
-            "**Launch the dashboard:**"
+            "**Launch the dashboard in the background** (uses `tmux` if "
+            "available, falls back to `nohup` — terminal stays usable):"
         )
         st.code(
-            "streamlit run streamlit_app.py --server.headless=true",
+            "./launch.sh        # start (Linux/macOS)\n"
+            "./stop.sh          # stop",
             language="bash",
         )
         st.markdown(
             "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
             "if Streamlit runs on a remote machine). Scenarios pre-load from "
             "`$BALMOREL_ROOT`; head to **📂 Import Results** to add more via "
-            "upload or change the folder path on the fly."
+            "upload or change the folder path on the fly. To see streamlit's "
+            "live startup logs (terminal stays occupied), run `streamlit run "
+            "streamlit_app.py --server.headless=true` directly instead of `./launch.sh`."
         )
         with st.expander("Other CLI options"):
             st.code(

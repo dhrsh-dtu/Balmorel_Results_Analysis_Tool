@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# Launch the Balmorel dashboard in the background so the terminal stays usable.
+#
+#   ./launch.sh
+#
+# Uses tmux when available (re-attachable, survives SSH disconnect), falls
+# back to nohup + a log file when tmux isn't installed.
+#
+# Override defaults via env vars before invocation:
+#   BALMOREL_DASH_PORT     port to bind (default: 8501)
+#   BALMOREL_DASH_LOG      log file path for the nohup fallback
+#                          (default: /tmp/balmorel-dashboard.log)
+#   BALMOREL_DASH_SESSION  tmux session name (default: balmorel-dash)
+
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$REPO_DIR"
+
+SESSION_NAME="${BALMOREL_DASH_SESSION:-balmorel-dash}"
+LOG_FILE="${BALMOREL_DASH_LOG:-/tmp/balmorel-dashboard.log}"
+PORT="${BALMOREL_DASH_PORT:-8501}"
+
+# ── Sanity checks ──────────────────────────────────────────────────────────
+if ! command -v streamlit >/dev/null 2>&1; then
+    cat >&2 <<EOF
+❌ 'streamlit' not found on PATH.
+
+Activate your env first, then re-run this script:
+    conda activate balmorel-results-viz
+    ./launch.sh
+EOF
+    exit 1
+fi
+
+# Refuse to start a duplicate
+if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    cat <<EOF
+⚠ Dashboard is already running in tmux session '$SESSION_NAME'.
+  Attach:  tmux attach -t $SESSION_NAME
+  Stop:    ./stop.sh
+EOF
+    exit 0
+fi
+if pgrep -f "streamlit run streamlit_app.py" >/dev/null 2>&1; then
+    PIDS="$(pgrep -f 'streamlit run streamlit_app.py' | tr '\n' ' ')"
+    cat <<EOF
+⚠ A streamlit instance for this app is already running (PID: $PIDS).
+  Stop it first:  ./stop.sh
+EOF
+    exit 0
+fi
+
+# ── Background with tmux if available, else nohup ──────────────────────────
+if command -v tmux >/dev/null 2>&1; then
+    tmux new-session -d -s "$SESSION_NAME" \
+        "streamlit run streamlit_app.py --server.headless=true --server.port=$PORT"
+    cat <<EOF
+✅ Dashboard running in tmux session '$SESSION_NAME' on port $PORT.
+
+  Attach (see live logs):   tmux attach -t $SESSION_NAME
+                            (detach again with: Ctrl+b then d)
+  Stop:                     ./stop.sh
+EOF
+else
+    mkdir -p "$(dirname "$LOG_FILE")"
+    nohup streamlit run streamlit_app.py --server.headless=true --server.port="$PORT" \
+        > "$LOG_FILE" 2>&1 &
+    PID=$!
+    cat <<EOF
+✅ Dashboard running (PID $PID) on port $PORT.  [tmux not found, used nohup]
+
+  Logs:  tail -f $LOG_FILE
+  Stop:  ./stop.sh   (or: kill $PID)
+EOF
+fi
+
+cat <<EOF
+
+➡  Open the URL from your laptop:
+       http://localhost:$PORT
+   If Streamlit runs on a remote host, SSH-tunnel that port first:
+       ssh -L $PORT:localhost:$PORT user@hostname
+EOF
