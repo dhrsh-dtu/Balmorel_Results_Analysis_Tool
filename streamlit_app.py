@@ -109,12 +109,7 @@ def tool_description() -> None:
 
     with tab_balm:
         with st.expander("1️⃣ Setup", expanded=False):
-            st.markdown(
-                "**One-time only.** Clone the repo + run `setup.sh` to create "
-                "the conda env, then add two lines to your HPC `~/.bashrc` so "
-                "every shell auto-activates the env and knows which run folder "
-                "to load — no per-session typing later."
-            )
+            st.markdown("Clone, install, and add two lines to your HPC `~/.bashrc`:")
             st.code(
                 "# Clone + install (creates the balmorel-results-viz conda env):\n"
                 "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
@@ -127,41 +122,38 @@ def tool_description() -> None:
                 language="bash",
             )
             st.caption(
-                "Assumes `conda init <shell>` was run once during your miniconda "
-                "install (standard). If `conda activate` errors with `conda: "
-                "command not found`, run `conda init bash` (or `zsh`) and reopen "
-                "your shell. GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`); "
-                "on other clusters also `export GAMS_SYSDIR=…` or pass `--gams-dir` "
-                "at import time."
+                "- Assumes `conda init <shell>` was run once during miniconda install. "
+                "If `conda activate` errors with `command not found`, run "
+                "`conda init bash` and reopen your shell.\n"
+                "- GAMS auto-detected at `/appl/gams/50.4.1` on DTU HPC. "
+                "On other clusters, set `GAMS_SYSDIR` or pass `--gams-dir` at import time."
             )
 
         with st.expander("2️⃣ Import Results", expanded=False):
             st.markdown(
-                "Convert your Balmorel GDX outputs into portable `.zip` archives "
-                "(one per scenario). Run this when scenarios are new or change:"
+                "Convert your GDX outputs into portable `.zip` archives "
+                "(run when scenarios are new or change):"
             )
             st.code(
                 "python -m balmorel_dashboard $BALMOREL_ROOT",
                 language="bash",
             )
             st.caption(
-                "The archives land at `<scenario>/output/zip_files/MainResults_*.zip` "
-                "inside `$BALMOREL_ROOT`. The dashboard's **📂 Import Results** "
-                "page reads them from there and auto-loads them on launch."
+                "- Archives land at `<scenario>/output/zip_files/MainResults_*.zip` inside `$BALMOREL_ROOT`.\n"
+                "- The dashboard's **📂 Import Results** page reads them automatically on launch."
             )
 
         with st.expander("3️⃣ Run Dashboard", expanded=False):
+            st.markdown("Start (and stop) the dashboard on HPC:")
             st.code(
                 "./start_dashboard.sh    # detached tmux session, terminal stays usable\n"
                 "./stop_dashboard.sh     # stop when done",
                 language="bash",
             )
             st.caption(
-                "Open `http://localhost:8501` in your laptop browser. In "
-                "**VS Code / Cursor / JetBrains Remote SSH** the port auto-forwards "
-                "— just click the URL. From **plain SSH**, first run "
-                "`ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk` on "
-                "your laptop."
+                "- Open `http://localhost:8501` in your laptop browser.\n"
+                "- **VS Code / Cursor / JetBrains Remote SSH**: port auto-forwards — just click the URL.\n"
+                "- **Plain SSH**: first run `ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk` on your laptop."
             )
 
         with st.expander("Other CLI options"):

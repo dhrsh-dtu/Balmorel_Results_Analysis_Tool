@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.12] — 2026-05-14
+
+### Changed
+- **"I'm a Balmorel user" tab content trimmed**: each step now has a
+  one-line lead-in (instead of a paragraph) and the greyish caption
+  text below the code block is now bulleted for easier scanning. Same
+  information, half the prose.
+
 ## [0.14.11] — 2026-05-14
 
 ### Changed
