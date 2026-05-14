@@ -5,6 +5,32 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.5.0] — 2026-05-14
+
+Separate "what is this tool" from "how do I load my data".
+
+### Added
+- **`📂 Import Results` page** (new, right after Tool Description in nav).
+  All loading UI lives here now: folder path text input (prefilled from
+  `$BALMOREL_ROOT`), upload widget, loaded-scenarios list with delete
+  buttons, and the cross-page filters (scenarios / year / countries).
+  Adaptive — shows a success banner with scenario count when loaded,
+  or an info prompt when empty.
+- **`data.autoload_from_root(root)` helper** in `lib/data.py` — idempotent
+  folder scan + ingest, used by both the silent module-level autoload in
+  `streamlit_app.py` and the editable text input on the Import Results page.
+
+### Changed
+- **Sidebar is now nav-only.** All loading controls and filters moved off
+  the sidebar to the Import Results page. Streamlit's `st.navigation` is
+  the only thing in the sidebar.
+- **`streamlit_app.py` keeps a silent module-level autoload** (no UI) so
+  bookmarked deep links to e.g. `?page=Overview` still see auto-loaded
+  scenarios from `$BALMOREL_ROOT` without visiting Import Results first.
+- **Tool Description** copy updated: introductory text and the
+  "I'm a collaborator" tab point to the Import Results page instead of
+  "the sidebar".
+
 ## [0.4.0] — 2026-05-14
 
 Simplify dashboard surface: drop the Python launcher, expose folder load in the UI.

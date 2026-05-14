@@ -14,6 +14,7 @@ import io
 import json
 import zipfile
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -117,7 +118,8 @@ def ingest_uploads(files: list["UploadedFile"]) -> None:
 def ingest_local_paths(paths: list[str | "os.PathLike"]) -> tuple[int, int]:
     """Load each local .zip path into session state.
 
-    Used by the folder auto-load path in `streamlit_app.py`, which scans
+    Used by `autoload_from_root` (env var driven) and by the Import Results
+    page's folder text input. Scans for archives at
     `<BALMOREL_ROOT>/*/output/zip_files/*.zip` server-side.
 
     Returns (n_loaded, n_skipped) — skipped means already in session state
@@ -141,6 +143,28 @@ def ingest_local_paths(paths: list[str | "os.PathLike"]) -> tuple[int, int]:
         st.session_state["scenarios"][scn.name] = scn
         loaded += 1
     return loaded, skipped
+
+
+def autoload_from_root(root: str) -> int:
+    """Discover and ingest all `<root>/*/output/zip_files/*.zip` once per root.
+
+    Idempotent — subsequent calls with the same `root` return the cached count
+    without re-scanning. Used by both the module-level silent autoload in
+    `streamlit_app.py` (driven by `$BALMOREL_ROOT`) and the editable text
+    input on the Import Results page.
+
+    Returns the number of archives found at this root (0 means the path
+    resolved to nothing — invalid path or no zips yet).
+    """
+    cached_root = st.session_state.get("_autoload_done")
+    if cached_root == root:
+        return st.session_state.get("_autoload_count", 0)
+    paths = sorted(Path(root).glob("*/output/zip_files/MainResults_*.zip"))
+    if paths:
+        ingest_local_paths(paths)
+    st.session_state["_autoload_done"] = root
+    st.session_state["_autoload_count"] = len(paths)
+    return len(paths)
 
 
 def _load_archive(payload: bytes, fallback_name: str) -> Scenario:

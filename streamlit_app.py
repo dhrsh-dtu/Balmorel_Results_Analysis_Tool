@@ -1,22 +1,17 @@
 """
 Balmorel Results Analysis Tool — entrypoint.
 
-Two ways to load scenarios into the dashboard, both always available:
-  • Folder path (sidebar text input). Prefilled from $BALMOREL_ROOT if set.
-    The Streamlit server scans `<root>/*/output/zip_files/MainResults_*.zip`
-    and auto-loads everything. Useful on HPC / laptop where the zips already
-    live on the same machine as Streamlit.
-  • Upload widget. Drag-and-drop one or more `.zip` archives. Works
-    everywhere, including Streamlit Cloud where the server has no access
-    to the user's filesystem.
+This module sets up the page config, runs a silent module-level autoload
+from `$BALMOREL_ROOT` (so scenarios are available even if the user lands
+directly on an analysis page), and configures `st.navigation`. All loading
+UI — folder text input, upload widget, loaded-scenarios list, and global
+filters — lives on the `📂 Import Results` page.
 
-Uses `st.navigation` so the home page can be labelled "Tool Description"
-in the sidebar (instead of Streamlit's default "streamlit app").
+The sidebar contains only page navigation.
 """
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import streamlit as st
 
@@ -33,130 +28,14 @@ theme.apply()
 data.ensure_state()
 
 
-# ── Folder auto-load helper ────────────────────────────────────────────────
-_DEFAULT_ROOT = os.environ.get("BALMOREL_ROOT", "")
-
-
-def _autoload_from_root(root: str) -> int:
-    """Discover and ingest all `<root>/*/output/zip_files/*.zip` once per root.
-
-    Returns the number of archives found at this root (0 means the path
-    resolved to nothing — invalid path, or no zips yet).
-    """
-    cached_root = st.session_state.get("_autoload_done")
-    if cached_root == root:
-        return st.session_state.get("_autoload_count", 0)
-    paths = sorted(Path(root).glob("*/output/zip_files/MainResults_*.zip"))
-    if paths:
-        data.ingest_local_paths(paths)
-    st.session_state["_autoload_done"] = root
-    st.session_state["_autoload_count"] = len(paths)
-    return len(paths)
-
-
-# ── Sidebar (runs on every page) ────────────────────────────────────────────
-def _render_sidebar() -> None:
-    with st.sidebar:
-        st.markdown("## 🔋 Balmorel Results")
-
-        root_input = st.text_input(
-            "📂 Load from folder (server-side)",
-            value=_DEFAULT_ROOT,
-            placeholder="/path/to/Balmorel root",
-            help=(
-                "Path on the machine running Streamlit (HPC or laptop). "
-                "Scans for `<root>/*/output/zip_files/MainResults_*.zip`. "
-                "Pre-filled from `$BALMOREL_ROOT` when set. Leave empty on cloud."
-            ),
-        ).strip()
-
-        if root_input:
-            n = _autoload_from_root(root_input)
-            if n == 0:
-                st.caption(f"⚠ No archives found at `{root_input}`")
-            else:
-                if st.button("↻ Refresh", help="Re-scan for new or updated archives"):
-                    st.session_state.pop("_autoload_done", None)
-                    st.rerun()
-
-        uploaded = st.file_uploader(
-            "📤 Upload scenario archive(s)",
-            type=["zip"],
-            accept_multiple_files=True,
-            help="Each .zip is a Balmorel scenario produced by `python -m balmorel_dashboard`.",
-            label_visibility="visible",
-        )
-        if uploaded:
-            data.ingest_uploads(uploaded)
-
-        all_scenarios = data.list_scenarios()
-        if all_scenarios:
-            st.divider()
-            st.markdown("### 📂 Loaded scenarios")
-
-            for name in all_scenarios:
-                scn = data.get_scenario(name)
-                if scn is None:
-                    continue
-                caps = scn.capabilities
-                badges = []
-                if caps.get("has_pb"):
-                    badges.append("🌍 PB")
-                if caps.get("has_v2g"):
-                    badges.append("🚗 V2G")
-                if caps.get("has_optiflow"):
-                    badges.append("⚙ OptiFlow")
-                badge_str = " · ".join(badges) if badges else "Balmorel"
-
-                c1, c2 = st.columns([0.85, 0.15])
-                c1.markdown(
-                    f"**{name}**  \n"
-                    f"<span style='font-size:11px;color:#888'>"
-                    f"{badge_str} · {len(scn.symbols)} symbols</span>",
-                    unsafe_allow_html=True,
-                )
-                if c2.button("🗑", key=f"del_{name}", help="Remove this scenario from the session"):
-                    data.delete_scenario(name)
-                    st.rerun()
-
-            st.divider()
-            st.markdown("### 🔎 Filters")
-
-            selected = st.multiselect(
-                "Scenarios to include",
-                options=all_scenarios,
-                default=all_scenarios,
-            )
-            st.session_state["selected_scenarios"] = selected
-
-            years = data.available_years(selected) if selected else []
-            if years:
-                st.session_state["selected_year"] = st.selectbox(
-                    "Year",
-                    options=years,
-                    index=len(years) - 1,
-                )
-
-            countries = data.available_countries(selected) if selected else []
-            if countries:
-                st.session_state["selected_countries"] = st.multiselect(
-                    "Countries",
-                    options=countries,
-                    default=countries,
-                )
-
-        st.divider()
-        with st.expander("ℹ About"):
-            st.markdown(
-                "Built on [pybalmorel](https://github.com/Mathias157/pybalmorel). "
-                "The dashboard reads `.zip` archives produced by the export CLI "
-                "on a machine with GAMS installed.\n\n"
-                "Source: [github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool]"
-                "(https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool)"
-            )
-
-
-_render_sidebar()
+# ── Silent autoload from $BALMOREL_ROOT ────────────────────────────────────
+# Runs on every script execution so scenarios are available even when the
+# user lands directly on an analysis page (e.g. via bookmark) without
+# visiting the Import Results page first. Idempotent — re-running with the
+# same root is a no-op via the session_state cache in data.autoload_from_root.
+_BALMOREL_ROOT_ENV = os.environ.get("BALMOREL_ROOT", "")
+if _BALMOREL_ROOT_ENV:
+    data.autoload_from_root(_BALMOREL_ROOT_ENV)
 
 
 # ── Tool Description page ──────────────────────────────────────────────────
@@ -165,8 +44,9 @@ def tool_description() -> None:
     st.markdown(
         "An interactive web dashboard for exploring results from "
         "[Balmorel](https://www.balmorel.com/) energy-system optimisation runs. "
-        "Upload a scenario archive in the sidebar to see live, downloadable plots "
-        "of capacity, production, prices, transmission and planetary-boundary "
+        "Head to **📂 Import Results** in the sidebar to load scenarios "
+        "(folder path or upload), then explore live, downloadable plots of "
+        "capacity, production, prices, transmission and planetary-boundary "
         "indicators."
     )
 
@@ -254,7 +134,8 @@ def tool_description() -> None:
         st.markdown(
             "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
             "if Streamlit runs on a remote machine). Scenarios pre-load from "
-            "`$BALMOREL_ROOT`; the upload widget stays available for ad-hoc archives."
+            "`$BALMOREL_ROOT`; head to **📂 Import Results** to add more via "
+            "upload or change the folder path on the fly."
         )
         with st.expander("Other CLI options"):
             st.code(
@@ -276,9 +157,9 @@ def tool_description() -> None:
             "of one scenario's parquet tables — typically <1 MB).\n"
             "2. **Visit the live app URL** and sign in with the email you were "
             "approved with.\n"
-            "3. **Drag the `.zip`** into the **📤 Upload scenario archive(s)** "
-            "box in the sidebar. Multiple uploads accumulate as separate "
-            "scenarios you can compare.\n"
+            "3. **Go to 📂 Import Results** in the sidebar and drag your `.zip` "
+            "into the **Upload scenario archive(s)** section. Multiple uploads "
+            "accumulate as separate scenarios you can compare.\n"
             "4. **Explore** — Overview, Capacity, Production, Prices & Demand, "
             "Planetary Boundaries, Transmission, Raw Explorer. Pages auto-hide "
             "if their relevant symbols aren't in the archive.\n\n"
@@ -299,7 +180,7 @@ def tool_description() -> None:
     st.divider()
     st.markdown("### What's on every page")
     st.markdown(
-        "Filter once in the sidebar (scenarios, year, countries) — filters apply across all pages. "
+        "Filter once on **📂 Import Results** (scenarios, year, countries) — filters apply across all pages. "
         "Click the 📷 icon on any Plotly chart to download a PNG. Most pages also offer CSV "
         "downloads of the underlying tables."
     )
@@ -375,6 +256,7 @@ def tool_description() -> None:
 # page must be listed here.
 pages = [
     st.Page(tool_description, title="Tool Description", icon="🔋", default=True, url_path=""),
+    st.Page("pages/00_📂_Import_Results.py",           title="Import Results",        icon="📂"),
     st.Page("pages/0_📥_Model_Inputs.py",              title="Model Inputs",          icon="📥"),
     st.Page("pages/1_📊_Overview.py",                  title="Overview",              icon="📊"),
     st.Page("pages/2_⚡_Capacity.py",                   title="Capacity",              icon="⚡"),
