@@ -27,6 +27,21 @@ st.set_page_config(
 theme.apply()
 data.ensure_state()
 
+# Trim the default top padding above the page title (Streamlit defaults to
+# ~6rem). Applied here at module-level so every page picks it up via
+# st.navigation.
+st.markdown(
+    """
+    <style>
+    [data-testid="stMainBlockContainer"],
+    .block-container {
+        padding-top: 1.5rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 # ── Silent autoload from $BALMOREL_ROOT ────────────────────────────────────
 # Runs on every script execution so scenarios are available even when the

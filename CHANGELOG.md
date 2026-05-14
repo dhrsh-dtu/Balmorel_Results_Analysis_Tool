@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.10] — 2026-05-14
+
+### Changed
+- **Reduced top padding above the page title** from Streamlit's default
+  ~6rem to 1.5rem. CSS injected at module-level in `streamlit_app.py`
+  so every page (Tool Description, Import Results, Overview, etc.) gets
+  the same tight top alignment.
+
 ## [0.14.9] — 2026-05-14
 
 ### Changed
