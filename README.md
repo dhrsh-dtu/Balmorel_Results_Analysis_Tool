@@ -58,7 +58,7 @@ cd Balmorel_Results_Analysis_Tool
 
 `setup.sh` also sanity-checks that GAMS is reachable (warns if not — the dashboard still works on already-exported zips even without GAMS).
 
-Activate the env, point at your Balmorel root, export scenarios, and launch the dashboard:
+Activate the env, point at your Balmorel root, export scenarios, and start the dashboard:
 
 ```bash
 conda activate balmorel-results-viz
@@ -71,49 +71,15 @@ export BALMOREL_ROOT=/path/to/Balmorel
 #    GAMS_SYSDIR or pass --gams-dir only if you're elsewhere.
 python -m balmorel_dashboard $BALMOREL_ROOT
 
-# 3. Launch the dashboard in the background (terminal stays usable):
-./launch.sh
+# 3. Start the dashboard in the background (terminal stays usable):
+./start_dashboard.sh
 ```
 
-`launch.sh` backgrounds streamlit using `tmux` when available (attach later with `tmux attach -t balmorel-dash` to see live logs) and falls back to `nohup` + log file when it isn't. Stop with `./stop.sh`.
+`start_dashboard.sh` backgrounds streamlit using `tmux` when available (attach later with `tmux attach -t balmorel-dash` to see live logs) and falls back to `nohup` + log file when it isn't. It also prints a ready-to-copy `ssh -L` tunnel command with your current node's hostname filled in. Stop with `./stop_dashboard.sh`.
 
-Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote host). Scenarios are pre-loaded; head to the **📂 Import Results** page to upload more or change the folder path.
+**To view from your laptop**, copy the printed `ssh -L …` command into a new terminal on your laptop, then open <http://localhost:8501> in your browser. Scenarios are pre-loaded; head to the **📂 Import Results** page to upload more or change the folder path.
 
-If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the text input on Import Results for the folder. To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./launch.sh`.
-
-#### 🔧 Path A' — start a remote dashboard from your laptop (one command)
-
-When the dashboard runs on a remote host (e.g. DTU HPC) and you're sitting at your laptop, `./start_dashboard.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
-
-1. **One-time setup** — set just the repo path in your laptop's `~/.bashrc` (or `~/.zshrc`), and make sure SSH key auth to HPC works (no password prompts):
-
-   ```bash
-   export BALMOREL_DASH_PATH="/work3/<your-user>/Balmorel/Balmorel_Results_Analysis_Tool"
-   ```
-
-   On DTU HPC, the script derives the entry host automatically: any `/work3/<user>/…` path becomes `<user>@hpclogin1.hpccluster.dtu.dk` as the default. The state file (in HPC's shared filesystem) re-routes the tunnel to wherever the tmux session actually lives — `hpclogin1` is just a way in.
-
-2. **Start:**
-
-   ```bash
-   ./start_dashboard.sh
-   ```
-
-   Opens an SSH tunnel and your browser, with the dashboard pre-loaded.
-
-3. **Stop:**
-
-   ```bash
-   ./stop_dashboard.sh
-   ```
-
-Watch the remote logs at any time with `ssh $(cat .dashboard_host) -t "tmux attach -t balmorel-dash"` (Ctrl+b then d to detach).
-
-**Overrides** (rarely needed):
-
-- Pass a host explicitly for one off:  `./start_dashboard.sh user@some-other-node`
-- Or set `BALMOREL_DASH_HOST` in your shell to use a different default — needed if you're **not** on DTU HPC (other clusters won't match the `/work3/<user>/` pattern).
-- `BALMOREL_DASH_PORT=8501` if 8501 clashes with something on your laptop.
+To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./start_dashboard.sh`.
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 

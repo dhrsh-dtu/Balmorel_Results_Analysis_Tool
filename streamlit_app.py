@@ -97,10 +97,11 @@ def tool_description() -> None:
 
     with tab_balm:
         st.markdown(
-            "You run Balmorel on HPC and want to view results from your laptop. "
-            "After a one-time setup on each side, the daily workflow is **one "
-            "command** on your laptop — SSH tunnel + remote launch + browser "
-            "open all happen automatically."
+            "You run Balmorel on HPC. After a one-time setup, the daily "
+            "workflow is: start the dashboard on HPC, copy the printed "
+            "`ssh -L` tunnel command into a laptop terminal, open the "
+            "browser. The streamlit session lives in tmux so it survives "
+            "SSH disconnects."
         )
 
         st.markdown("#### 1️⃣ One-time setup on HPC")
@@ -122,58 +123,26 @@ def tool_description() -> None:
             "export time."
         )
 
-        st.markdown("#### 2️⃣ One-time setup on laptop")
-        st.code(
-            "# Clone the repo on laptop too:\n"
-            "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
-            "\n"
-            "# Add to laptop ~/.bashrc (or ~/.zshrc on macOS):\n"
-            "export BALMOREL_DASH_PATH=/work3/<your-user>/Balmorel/Balmorel_Results_Analysis_Tool\n"
-            "\n"
-            "# Set up SSH key auth so no password prompts (only needed once):\n"
-            "ssh-copy-id <your-user>@hpclogin1.hpccluster.dtu.dk",
-            language="bash",
-        )
-        st.caption(
-            "The launcher derives your username and the HPC entry host from "
-            "`BALMOREL_DASH_PATH`, so this is the only env var needed on the "
-            "laptop side for DTU users."
-        )
-
-        st.markdown("#### 3️⃣ Whenever Balmorel scenarios change")
+        st.markdown("#### 2️⃣ Whenever Balmorel scenarios change")
         st.markdown("Re-export the GDX files to portable zip archives on HPC:")
         st.code(
             "python -m balmorel_dashboard $BALMOREL_ROOT",
             language="bash",
         )
 
-        st.markdown("#### 4️⃣ Daily — launch from your laptop")
+        st.markdown("#### 3️⃣ Daily — start the dashboard on HPC")
         st.code(
-            "./start_dashboard.sh    # SSH + launch.sh on HPC + tunnel + browser opens\n"
-            "./stop_dashboard.sh     # stop remote streamlit + close tunnel",
+            "./start_dashboard.sh    # detached tmux session, terminal stays usable\n"
+            "./stop_dashboard.sh     # stop when done",
             language="bash",
         )
         st.caption(
-            "The script auto-discovers which login node holds your tmux "
-            "session via a state file in `/work3` (shared across all hpclogin "
-            "nodes), so you never have to remember whether you're on hpclogin1 "
-            "or hpclogin5. The session survives SSH disconnects — close your "
-            "laptop, come back tomorrow, the same dashboard is still running."
+            "`start_dashboard.sh` prints a ready-to-copy `ssh -L …` command "
+            "with your current node's hostname filled in. Open that command "
+            "in a new laptop terminal, then visit http://localhost:8501. "
+            "The tmux session survives disconnects, so you can close your "
+            "laptop and reconnect the next day."
         )
-
-        with st.expander("Direct on-HPC launch (when SSH'd in interactively)"):
-            st.markdown(
-                "If you're already on HPC in an interactive shell and want to "
-                "run streamlit there directly:"
-            )
-            st.code(
-                "./launch.sh        # detached tmux session, terminal stays usable\n"
-                "./stop.sh          # stop it\n"
-                "\n"
-                "# Then from your laptop, in a separate terminal:\n"
-                "ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk",
-                language="bash",
-            )
 
         with st.expander("Other CLI options"):
             st.code(

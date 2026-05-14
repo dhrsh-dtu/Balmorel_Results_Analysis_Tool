@@ -5,6 +5,35 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.0] — 2026-05-14
+
+Scope cut: HPC-side only. Drop the laptop-side launcher entirely.
+
+### Changed
+- **`launch.sh` → `start_dashboard.sh`**, **`stop.sh` → `stop_dashboard.sh`.**
+  More descriptive names that say what the script does.
+- **`start_dashboard.sh` now prints a ready-to-copy `ssh -L` tunnel command**
+  with `$USER@$(hostname --fqdn)` pre-filled — the user just copies one line
+  into a laptop terminal.
+
+### Removed
+- **Laptop-side `start_dashboard.sh` / `stop_dashboard.sh`** (the SSH-from-
+  laptop launchers). Balmorel users are HPC-centric and SSH-fluent; the
+  one-command-from-laptop UX was over-investment for the audience. Users
+  now SSH into HPC, run `./start_dashboard.sh`, copy the printed tunnel
+  command into a laptop terminal, open the browser.
+- **`.dashboard_host` state file** and its discovery logic. No longer
+  needed without cross-node laptop-side launching — `hostname --fqdn` at
+  launch time gives the right value for the printed tunnel command.
+- **`BALMOREL_DASH_HOST` and `BALMOREL_DASH_PATH` env vars** — both were
+  laptop-side. Only `BALMOREL_DASH_PORT`, `BALMOREL_DASH_SESSION`, and
+  `BALMOREL_DASH_LOG` remain (all HPC-side, all optional).
+- **README Path A'** ("start a remote dashboard from your laptop") section.
+
+### Migration
+- If you have `BALMOREL_DASH_HOST` or `BALMOREL_DASH_PATH` exported on
+  your laptop, you can unset them — they're no longer used.
+
 ## [0.13.0] — 2026-05-14
 
 Make `./start_dashboard.sh` (and stop_dashboard.sh) work cleanly when run

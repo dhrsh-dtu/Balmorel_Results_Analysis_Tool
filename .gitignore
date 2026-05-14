@@ -56,6 +56,3 @@ test_data/
 
 # Logs
 *.log
-
-# Dashboard runtime state (host of the currently-running tmux/streamlit)
-.dashboard_host
