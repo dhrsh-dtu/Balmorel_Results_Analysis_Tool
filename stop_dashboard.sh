@@ -44,6 +44,29 @@ if [ "$USER_PART" = "$ENTRY_HOST" ]; then
     USER_PART="$USER"
 fi
 
+# ── 0. On-cluster shortcut ─────────────────────────────────────────────────
+# If we have local access to the repo, skip SSH and run stop.sh directly.
+LOCAL_FQDN="$(hostname --fqdn 2>/dev/null || hostname)"
+
+if [ -f "$REPO_PATH/stop.sh" ]; then
+    echo "▶ Local access to $REPO_PATH detected — stopping on-cluster (no SSH needed)."
+
+    ACTUAL_FQDN=""
+    if [ -f "$REPO_PATH/.dashboard_host" ]; then
+        ACTUAL_FQDN="$(head -1 "$REPO_PATH/.dashboard_host" | tr -d '[:space:]')"
+    fi
+
+    if [ -n "$ACTUAL_FQDN" ] && [ "$ACTUAL_FQDN" != "$LOCAL_FQDN" ]; then
+        echo "▶ Session was on $ACTUAL_FQDN; SSHing there to stop tmux..."
+        ssh "$USER_PART@$ACTUAL_FQDN" "bash -lc 'cd \"$REPO_PATH\" && ./stop.sh'" || true
+    else
+        ( cd "$REPO_PATH" && ./stop.sh ) || true
+    fi
+
+    echo "✅ Done. (No local tunnel to kill — you're on the cluster.)"
+    exit 0
+fi
+
 # ── 1. Discover which specific node holds the session ──────────────────────
 ACTUAL_FQDN="$(
     ssh -o ConnectTimeout=10 "$ENTRY_HOST" \

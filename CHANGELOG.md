@@ -5,6 +5,28 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.13.0] — 2026-05-14
+
+Make `./start_dashboard.sh` (and stop_dashboard.sh) work cleanly when run
+*on* the HPC cluster, not just from a laptop.
+
+### Added
+- **On-cluster shortcut in `start_dashboard.sh` / `stop_dashboard.sh`:**
+  when `$BALMOREL_DASH_PATH` is readable as a local file, skip SSH and run
+  `launch.sh` / `stop.sh` directly. Avoids password prompts, the DTU login
+  banner spam, and any `bash -lc` conda-activation surprises. The state
+  file is read directly from the shared filesystem. If the existing
+  session lives on a different node, the script still SSHes there (the
+  one place SSH is unavoidable). The on-cluster output skips the laptop
+  browser-open step and instead prints the SSH-tunnel command the user
+  needs to run from their laptop.
+- **Conda fallback in `launch.sh`:** when `streamlit` isn't on PATH after
+  the initial check, the script tries to source `conda.sh` from common
+  locations (`$HOME/miniconda3/…`, `/work3/$USER/miniconda3/…`,
+  `/opt/conda/…`) and activate `balmorel-results-viz`. Helps the
+  laptop → HPC flow when the remote login shell doesn't auto-source
+  `~/.bashrc`.
+
 ## [0.12.0] — 2026-05-14
 
 Refresh the Tool Description page after the workflow simplifications.

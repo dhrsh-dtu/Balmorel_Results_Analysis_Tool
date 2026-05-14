@@ -30,6 +30,28 @@ write_state() {
 }
 
 # ── Sanity checks ──────────────────────────────────────────────────────────
+# When this script is called via `ssh user@host "bash -lc 'launch.sh'"` from
+# a laptop, the remote login shell often doesn't auto-source ~/.bashrc, so
+# the user's `conda activate` line never fires. Try to source conda from
+# common locations as a fallback before giving up.
+if ! command -v streamlit >/dev/null 2>&1; then
+    for conda_sh in \
+        "$HOME/miniconda3/etc/profile.d/conda.sh" \
+        "$HOME/anaconda3/etc/profile.d/conda.sh" \
+        "/work3/$USER/miniconda3/etc/profile.d/conda.sh" \
+        "/opt/conda/etc/profile.d/conda.sh" \
+        ; do
+        if [ -f "$conda_sh" ]; then
+            # shellcheck disable=SC1090
+            . "$conda_sh"
+            conda activate balmorel-results-viz 2>/dev/null || true
+            if command -v streamlit >/dev/null 2>&1; then
+                break
+            fi
+        fi
+    done
+fi
+
 if ! command -v streamlit >/dev/null 2>&1; then
     cat >&2 <<EOF
 ❌ 'streamlit' not found on PATH.

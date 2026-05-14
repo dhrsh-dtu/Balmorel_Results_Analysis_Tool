@@ -86,6 +86,56 @@ if [ "$USER_PART" = "$ENTRY_HOST" ]; then
     USER_PART="$USER"
 fi
 
+# ── 0. On-cluster shortcut ─────────────────────────────────────────────────
+# If we have local access to the repo (we're already on HPC's shared
+# filesystem), skip SSH entirely. Avoids password prompts, the DTU login
+# banner noise, and any `bash -lc` conda-activation issues. Then print the
+# laptop-side tunnel command — the user still needs that to view in browser.
+LOCAL_FQDN="$(hostname --fqdn 2>/dev/null || hostname)"
+
+if [ -f "$REPO_PATH/launch.sh" ]; then
+    echo "▶ Local access to $REPO_PATH detected — running on-cluster (no SSH needed)."
+
+    ACTUAL_FQDN=""
+    if [ -f "$REPO_PATH/.dashboard_host" ]; then
+        ACTUAL_FQDN="$(head -1 "$REPO_PATH/.dashboard_host" | tr -d '[:space:]')"
+    fi
+
+    if [ -n "$ACTUAL_FQDN" ] && [ "$ACTUAL_FQDN" != "$LOCAL_FQDN" ]; then
+        # State file points to a different login node — SSH there so the
+        # idempotent re-launch check sees the actual tmux session.
+        echo "▶ Existing session on $ACTUAL_FQDN (we're on $LOCAL_FQDN); SSHing there to refresh..."
+        ssh "$USER_PART@$ACTUAL_FQDN" "bash -lc 'cd \"$REPO_PATH\" && ./launch.sh'"
+    else
+        # No session, or session is on this node — run launch.sh locally.
+        ( cd "$REPO_PATH" && ./launch.sh )
+        if [ -f "$REPO_PATH/.dashboard_host" ]; then
+            ACTUAL_FQDN="$(head -1 "$REPO_PATH/.dashboard_host" | tr -d '[:space:]')"
+        fi
+        if [ -z "$ACTUAL_FQDN" ]; then
+            echo "❌ launch.sh ran but didn't write .dashboard_host." >&2
+            exit 1
+        fi
+    fi
+
+    cat <<EOF
+
+✅ Dashboard running on $ACTUAL_FQDN, port $PORT.
+
+   You're on HPC, so there's no laptop browser to open from here.
+   From your laptop, in a new terminal, set up the SSH tunnel:
+       ssh -L $PORT:localhost:$PORT $USER_PART@$ACTUAL_FQDN
+   Then visit: http://localhost:$PORT
+
+   Watch live remote logs:
+       ssh $USER_PART@$ACTUAL_FQDN -t "tmux attach -t balmorel-dash"
+       (Ctrl+b then d to detach)
+
+   Stop everything: ./stop_dashboard.sh
+EOF
+    exit 0
+fi
+
 # ── 1. Look for an existing dashboard via the shared state file ────────────
 echo "▶ Checking for an existing dashboard via $ENTRY_HOST..."
 ACTUAL_FQDN="$(
