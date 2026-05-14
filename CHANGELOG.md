@@ -5,6 +5,22 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.7] — 2026-05-14
+
+### Removed
+- **"What's on every page"** section from the Tool Description page.
+  Repeated information already conveyed elsewhere.
+- **"Access"** section (was a "private deployment / contact for access"
+  notice). The app is moving toward public access.
+- **"Loaded scenarios" footer** that listed currently-loaded scenarios at
+  the bottom of Tool Description. The 📂 Import Results page already owns
+  this view.
+
+### Changed
+- **Intro paragraph trimmed** to one sentence: "Load scenarios via
+  📂 Import Results, then explore the analysis pages." No longer pre-lists
+  features (the cards below do that).
+
 ## [0.14.6] — 2026-05-14
 
 ### Changed

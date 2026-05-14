@@ -42,12 +42,9 @@ if _BALMOREL_ROOT_ENV:
 def tool_description() -> None:
     st.title("🔋 Balmorel Results Analysis Tool")
     st.markdown(
-        "An interactive web dashboard for exploring results from "
-        "[Balmorel](https://www.balmorel.com/) energy-system optimisation runs. "
-        "Head to **📂 Import Results** in the sidebar to load scenarios "
-        "(folder path or upload), then explore live, downloadable plots of "
-        "capacity, production, prices, transmission and planetary-boundary "
-        "indicators."
+        "An interactive web dashboard for exploring "
+        "[Balmorel](https://www.balmorel.com/) energy-system optimisation results. "
+        "Load scenarios via **📂 Import Results**, then explore the analysis pages."
     )
 
     st.divider()
@@ -200,14 +197,6 @@ def tool_description() -> None:
             )
 
     st.divider()
-    st.markdown("### What's on every page")
-    st.markdown(
-        "Filter once on **📂 Import Results** (scenarios, year, countries) — filters apply across all pages. "
-        "Click the 📷 icon on any Plotly chart to download a PNG. Most pages also offer CSV "
-        "downloads of the underlying tables."
-    )
-
-    st.divider()
 
     # ── Built on / links ────────────────────────────────────────────────────
     st.markdown("### Built on")
@@ -235,41 +224,6 @@ def tool_description() -> None:
         "- 📜 **License:** MIT"
     )
 
-    st.markdown("### Access")
-    st.info(
-        "This is a private deployment. If you'd like viewer access, contact "
-        "the repository maintainer with the email address you'd like added to "
-        "the allowlist."
-    )
-
-    # ── Loaded scenarios (only when data is present) ───────────────────────
-    scns = data.list_scenarios()
-    if scns:
-        st.divider()
-        n = len(scns)
-        st.markdown(f"### 📂 Loaded scenarios ({n})")
-        cols = st.columns(min(n, 4))
-        for i, scn in enumerate([data.get_scenario(name) for name in scns]):
-            if scn is None:
-                continue
-            c = cols[i % len(cols)]
-            with c:
-                st.markdown(f"**{scn.name}**")
-                st.caption(
-                    f"{', '.join(scn.years) or '—'}  ·  "
-                    f"{len(scn.countries)} countries  ·  "
-                    f"{len(scn.symbols)} symbols"
-                )
-                caps = scn.capabilities
-                tags = []
-                if caps.get("has_pb"):
-                    tags.append("🌍 Planetary Boundaries")
-                if caps.get("has_v2g"):
-                    tags.append("🚗 V2G")
-                if caps.get("has_optiflow"):
-                    tags.append("⚙ OptiFlow")
-                if tags:
-                    st.caption("Capabilities: " + ", ".join(tags))
 
 
 # ── Navigation ──────────────────────────────────────────────────────────────
