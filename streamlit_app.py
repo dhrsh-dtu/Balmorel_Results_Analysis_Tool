@@ -123,25 +123,26 @@ def tool_description() -> None:
             "export time."
         )
 
-        st.markdown("#### 2️⃣ Whenever Balmorel scenarios change")
-        st.markdown("Re-export the GDX files to portable zip archives on HPC:")
-        st.code(
-            "python -m balmorel_dashboard $BALMOREL_ROOT",
-            language="bash",
-        )
-
-        st.markdown("#### 3️⃣ Daily — start the dashboard on HPC")
+        st.markdown("#### 2️⃣ Daily — start the dashboard on HPC")
         st.code(
             "./start_dashboard.sh    # detached tmux session, terminal stays usable\n"
             "./stop_dashboard.sh     # stop when done",
             language="bash",
         )
         st.caption(
-            "`start_dashboard.sh` prints a ready-to-copy `ssh -L …` command "
-            "with your current node's hostname filled in. Open that command "
-            "in a new laptop terminal, then visit http://localhost:8501. "
-            "The tmux session survives disconnects, so you can close your "
-            "laptop and reconnect the next day."
+            "`start_dashboard.sh` prints `http://localhost:8501` plus two ways "
+            "to reach it: in **VS Code / Cursor / JetBrains Remote SSH** the "
+            "port auto-forwards (just click the URL); from a **plain SSH "
+            "terminal** copy the printed `ssh -L …` command into a new laptop "
+            "shell first. The tmux session survives SSH disconnects, so you "
+            "can close your laptop and reconnect the next day."
+        )
+
+        st.markdown("#### 3️⃣ Whenever Balmorel scenarios change")
+        st.markdown("Re-export the GDX files to portable zip archives on HPC:")
+        st.code(
+            "python -m balmorel_dashboard $BALMOREL_ROOT",
+            language="bash",
         )
 
         with st.expander("Other CLI options"):
