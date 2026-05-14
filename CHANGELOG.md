@@ -5,6 +5,26 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.14] — 2026-05-14
+
+### Changed
+- **Tool Description grammar + consistency pass:**
+  - **"What this tool does"** — semicolons replaced with commas + parentheses
+    for sub-lists; redundant `CSV download` removed from Raw Explorer (already
+    in the global caption); caption tightened from one long sentence to two
+    short ones.
+  - **Step intros parallelised** (all three end with `.`, use `&` for
+    connectors):
+    - Setup: "Clone, install & setup Balmorel path."
+    - Import Results: "Convert GDX outputs into portable `.zip` archives."
+    - Run Dashboard: "Start & stop the dashboard."
+  - **Import Results caption** gained a "Re-run whenever scenarios are
+    new or change" bullet (was inline parenthetical in the intro).
+  - **Collaborator tab** trimmed: stale "sign in with the email you were
+    approved with" line removed (was a leftover from the now-deleted
+    private-deployment notice); redundant page list in step 4 dropped;
+    semicolon in the `.zip` expander replaced with a period.
+
 ## [0.14.13] — 2026-05-14
 
 ### Changed

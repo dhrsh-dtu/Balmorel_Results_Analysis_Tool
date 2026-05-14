@@ -81,19 +81,19 @@ def tool_description() -> None:
         )
     with f2:
         st.markdown(
-            "**💰 Prices & Demand** — auto-tabs for Electricity, Heat, Hydrogen; "
+            "**💰 Prices & Demand** — auto-tabs (Electricity, Heat, Hydrogen), "
             "regional prices, demand by category, hourly profiles.\n\n"
-            "**🌍 Planetary Boundaries** — radar of all `TL_*` indicators against "
-            "the boundary ring; per-indicator drill-down with source attribution "
-            "(generation / transmission / EVs) and fuel/technology breakdown.\n\n"
+            "**🌍 Planetary Boundaries** — radar of `TL_*` indicators against "
+            "the boundary ring, per-indicator drill-down, source attribution "
+            "(generation, transmission, EVs), fuel/technology breakdown.\n\n"
             "**🔌 Transmission** — flow matrix heatmap, net trade per country, "
             "top lines by capacity, line utilization.\n\n"
             "**🔍 Raw Explorer** — search any symbol by name or description, "
-            "quick filters, numeric summary, CSV download."
+            "quick filters, numeric summary."
         )
     st.caption(
-        "🖼️ Image export (PNG) is available on every chart via the Plotly toolbar; "
-        "most pages also offer CSV downloads of the underlying tables."
+        "🖼️ PNG export on every chart via the Plotly toolbar. "
+        "CSV downloads on most pages."
     )
 
     st.divider()
@@ -109,7 +109,7 @@ def tool_description() -> None:
 
     with tab_balm:
         with st.expander("1️⃣ Setup", expanded=False):
-            st.markdown("Clone, install, and setup Balmorel Path (on HPC).")
+            st.markdown("Clone, install & setup Balmorel path.")
             st.code(
                 "# Clone + install (creates the balmorel-results-viz conda env):\n"
                 "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
@@ -133,21 +133,19 @@ def tool_description() -> None:
             )
 
         with st.expander("2️⃣ Import Results", expanded=False):
-            st.markdown(
-                "Convert your GDX outputs into portable `.zip` archives "
-                "(run when scenarios are new or change):"
-            )
+            st.markdown("Convert GDX outputs into portable `.zip` archives.")
             st.code(
                 "python -m balmorel_dashboard $BALMOREL_ROOT",
                 language="bash",
             )
             st.caption(
+                "- Re-run whenever scenarios are new or change.\n"
                 "- Archives land at `<scenario>/output/zip_files/MainResults_*.zip` inside `$BALMOREL_ROOT`.\n"
                 "- The dashboard's **📂 Import Results** page reads them automatically on launch."
             )
 
         with st.expander("3️⃣ Run Dashboard", expanded=False):
-            st.markdown("Start (and stop) the dashboard on HPC:")
+            st.markdown("Start & stop the dashboard.")
             st.code(
                 "./start_dashboard.sh    # detached tmux session, terminal stays usable\n"
                 "./stop_dashboard.sh     # stop when done",
@@ -171,30 +169,28 @@ def tool_description() -> None:
 
     with tab_collab:
         st.markdown(
-            "You don't have Balmorel installed — you just want to view results "
-            "someone shared with you.\n\n"
-            "1. **Receive a `.zip`** from a Balmorel user (it's a portable archive "
-            "of one scenario's parquet tables — typically <1 MB).\n"
-            "2. **Visit the live app URL** and sign in with the email you were "
-            "approved with.\n"
-            "3. **Go to 📂 Import Results** in the sidebar and drag your `.zip` "
-            "into the **Upload scenario archive(s)** section. Multiple uploads "
-            "accumulate as separate scenarios you can compare.\n"
-            "4. **Explore** — Overview, Capacity, Production, Prices & Demand, "
-            "Planetary Boundaries, Transmission, Raw Explorer. Pages auto-hide "
-            "if their relevant symbols aren't in the archive.\n\n"
+            "You don't have Balmorel installed — you just want to view "
+            "results someone shared with you.\n\n"
+            "1. **Receive a `.zip`** from a Balmorel user (one scenario per "
+            "archive, typically <1 MB).\n"
+            "2. **Visit the live app URL**.\n"
+            "3. **Go to 📂 Import Results** in the sidebar and drag your "
+            "`.zip` into **Upload scenario archive(s)**. Multiple uploads "
+            "accumulate as separate scenarios.\n"
+            "4. **Explore** — analysis pages auto-hide if relevant symbols "
+            "aren't in the archive.\n\n"
             "**No install required.**"
         )
         with st.expander("What's in a `.zip`?"):
             st.markdown(
                 "- One parquet file per Balmorel output symbol (production, "
-                "capacity, prices, transmission, …)\n"
-                "- A `manifest.json` describing the scenario's coverage\n"
-                "- Filtered input parameters from `all_endofmodel.gdx` (capex, "
-                "demand, fuel costs, etc.) — used to populate the "
-                "**📥 Model Inputs** page\n\n"
-                "No GAMS install needed on the dashboard side; the archive is "
-                "fully self-contained."
+                "capacity, prices, transmission, …).\n"
+                "- A `manifest.json` describing the scenario's coverage.\n"
+                "- Filtered input parameters from `all_endofmodel.gdx` "
+                "(capex, demand, fuel costs, etc.) — used to populate the "
+                "**📥 Model Inputs** page.\n\n"
+                "No GAMS install needed on the dashboard side. The archive "
+                "is fully self-contained."
             )
 
     st.divider()
