@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.4] — 2026-05-14
+
+### Changed
+- **Drop the `source …/conda.sh` line** from the recommended `~/.bashrc`
+  setup in both Tool Description and README. It's redundant when
+  `conda init <shell>` has been run (the standard miniconda install
+  path), since conda itself adds an initialize block to your shell rc.
+  Setup is now two dashboard-specific lines instead of three.
+  Captions explain the `conda: command not found` fallback (run
+  `conda init bash` once).
+
 ## [0.14.3] — 2026-05-14
 
 ### Changed

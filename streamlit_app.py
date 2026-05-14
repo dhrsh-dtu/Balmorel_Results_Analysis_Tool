@@ -106,7 +106,7 @@ def tool_description() -> None:
         st.markdown("#### 1️⃣ Setup")
         st.markdown(
             "**One-time only.** Clone the repo + run `setup.sh` to create "
-            "the conda env, then add three lines to your HPC `~/.bashrc` so "
+            "the conda env, then add two lines to your HPC `~/.bashrc` so "
             "every shell auto-activates the env and knows which run folder "
             "to load — no per-session typing later."
         )
@@ -116,16 +116,18 @@ def tool_description() -> None:
             "cd Balmorel_Results_Analysis_Tool\n"
             "./setup.sh                          # Linux/macOS\n"
             "\n"
-            "# Add these three lines to ~/.bashrc on HPC — set once, forget forever:\n"
-            "source /path/to/miniconda3/etc/profile.d/conda.sh    # find conda\n"
+            "# Add these two lines to ~/.bashrc on HPC — set once, forget forever:\n"
             "conda activate balmorel-results-viz                  # activate dashboard env\n"
             "export BALMOREL_ROOT=/path/to/your/Balmorel/run      # which run to auto-load",
             language="bash",
         )
         st.caption(
-            "GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`). On other "
-            "clusters, also `export GAMS_SYSDIR=…` or pass `--gams-dir` at "
-            "import time."
+            "Assumes `conda init <shell>` was run once during your miniconda "
+            "install (standard). If `conda activate` errors with `conda: "
+            "command not found`, run `conda init bash` (or `zsh`) and reopen "
+            "your shell. GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`); "
+            "on other clusters also `export GAMS_SYSDIR=…` or pass `--gams-dir` "
+            "at import time."
         )
 
         st.markdown("#### 2️⃣ Import Results")

@@ -61,10 +61,11 @@ cd Balmorel_Results_Analysis_Tool
 **One-time** — add to your HPC `~/.bashrc` so every shell auto-activates the env and knows which run folder to load:
 
 ```bash
-source /path/to/miniconda3/etc/profile.d/conda.sh    # find conda
-conda activate balmorel-results-viz                  # activate dashboard env
-export BALMOREL_ROOT=/path/to/Balmorel               # which run to auto-load
+conda activate balmorel-results-viz    # activate dashboard env
+export BALMOREL_ROOT=/path/to/Balmorel  # which run to auto-load
 ```
+
+(Assumes `conda init <shell>` was run during your miniconda install. If `conda activate` errors with `conda: command not found`, run `conda init bash` once and reopen your shell.)
 
 Then your daily commands stay tiny:
 
