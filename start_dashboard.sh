@@ -57,19 +57,12 @@ fi
 
 # Refuse to start a duplicate
 if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-    cat <<EOF
-⚠ Dashboard is already running in tmux session '$SESSION_NAME'.
-  Attach:  tmux attach -t $SESSION_NAME
-  Stop:    ./stop_dashboard.sh
-EOF
+    echo "⚠ Already running (tmux: $SESSION_NAME). Stop with ./stop_dashboard.sh."
     exit 0
 fi
 if pgrep -f "streamlit run streamlit_app.py" >/dev/null 2>&1; then
     PIDS="$(pgrep -f 'streamlit run streamlit_app.py' | tr '\n' ' ')"
-    cat <<EOF
-⚠ A streamlit instance for this app is already running (PID: $PIDS).
-  Stop it first:  ./stop_dashboard.sh
-EOF
+    echo "⚠ streamlit already running (PID: $PIDS). Stop with ./stop_dashboard.sh."
     exit 0
 fi
 
@@ -77,29 +70,15 @@ fi
 if command -v tmux >/dev/null 2>&1; then
     tmux new-session -d -s "$SESSION_NAME" \
         "streamlit run streamlit_app.py --server.headless=true --server.port=$PORT"
-    cat <<EOF
-✅ Dashboard running in tmux session '$SESSION_NAME' on port $PORT.
-
-  Attach (see live logs):   tmux attach -t $SESSION_NAME
-                            (detach again with: Ctrl+b then d)
-  Stop:                     ./stop_dashboard.sh
-EOF
+    RUNNING_DESC="tmux: $SESSION_NAME"
 else
     mkdir -p "$(dirname "$LOG_FILE")"
     nohup streamlit run streamlit_app.py --server.headless=true --server.port="$PORT" \
         > "$LOG_FILE" 2>&1 &
-    PID=$!
-    cat <<EOF
-✅ Dashboard running (PID $PID) on port $PORT.  [tmux not found, used nohup]
-
-  Logs:  tail -f $LOG_FILE
-  Stop:  ./stop_dashboard.sh   (or: kill $PID)
-EOF
+    RUNNING_DESC="PID $!, logs: $LOG_FILE"
 fi
 
-# ── Browser-access instructions ────────────────────────────────────────────
-# Resolve a usable hostname: hostname --fqdn returns short names on some
-# nodes, so fall back to appending `dnsdomainname` when there's no dot.
+# ── Resolve a usable FQDN for the tunnel hint ──────────────────────────────
 HOSTNAME_FQDN="$(hostname --fqdn 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 case "$HOSTNAME_FQDN" in
     *.*) ;;
@@ -112,12 +91,10 @@ case "$HOSTNAME_FQDN" in
 esac
 
 cat <<EOF
+✅ Dashboard running: http://localhost:$PORT  ($RUNNING_DESC)
 
-➡  Open in browser:  http://localhost:$PORT
+   Plain SSH (IDE Remote SSH auto-forwards — skip this line):
+     ssh -L $PORT:localhost:$PORT $USER@$HOSTNAME_FQDN
 
-   • VS Code / Cursor / JetBrains Remote SSH: port $PORT auto-forwards —
-     just open the URL above (your IDE may also pop up an
-     "Open in Browser" notification when streamlit starts).
-   • Plain SSH from a terminal: first forward the port from your laptop:
-       ssh -L $PORT:localhost:$PORT $USER@$HOSTNAME_FQDN
+   Stop: ./stop_dashboard.sh
 EOF

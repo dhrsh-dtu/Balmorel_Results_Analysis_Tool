@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.5] — 2026-05-14
+
+### Changed
+- **`start_dashboard.sh` output trimmed** — 12 lines → 5. URL now appears
+  on the success line; tunnel hint is one line with an inline "skip this
+  if your IDE auto-forwards" qualifier. The `tmux attach …` instruction
+  and verbose IDE-forwarding paragraph are gone (the tmux session name is
+  still printed parenthetically for users who want to attach manually).
+  Duplicate-detection messages collapsed to one line each.
+
 ## [0.14.4] — 2026-05-14
 
 ### Changed
