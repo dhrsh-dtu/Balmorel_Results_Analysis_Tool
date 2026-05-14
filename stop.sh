@@ -7,7 +7,9 @@
 
 set -euo pipefail
 
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SESSION_NAME="${BALMOREL_DASH_SESSION:-balmorel-dash}"
+STATE_FILE="$REPO_DIR/.dashboard_host"
 STOPPED=0
 
 if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -25,3 +27,7 @@ fi
 if [ "$STOPPED" -eq 0 ]; then
     echo "ℹ No running dashboard found."
 fi
+
+# Always clear the state file — even if nothing was running, a stale file
+# would mislead the laptop discovery on the next start.
+rm -f "$STATE_FILE"

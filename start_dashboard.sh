@@ -2,76 +2,110 @@
 #
 # One-command launcher for the Balmorel dashboard running on a REMOTE host.
 #
-# Run this from your LAPTOP (clone the repo there too if you haven't).
-# It will:
-#   1. SSH to the remote host and run ./launch.sh there
-#      (streamlit in a detached tmux session — survives disconnects)
-#   2. Open an SSH port-forward tunnel from your laptop in the background
-#   3. Open the dashboard URL in your default browser
+# Run this from your LAPTOP. The script:
+#   1. SSHes to any login node (the "entry host") to read the state file
+#      `<repo>/.dashboard_host` — discovers which specific node already has
+#      a running dashboard (HPC's filesystem is shared across login nodes,
+#      so any one of them can read it).
+#   2. If a session exists on a specific node, SSHes there to verify it's
+#      alive and refresh the state file.
+#   3. If no session exists, starts one on the entry host (whatever the
+#      ssh round-robin landed on) and re-reads the state file to find the
+#      node hostname.
+#   4. Opens an SSH port-forward tunnel to that specific node in the
+#      background.
+#   5. Opens the dashboard URL in your default browser.
+#
+# Net effect: you never type a specific login node. Set any entry host
+# once (specific node or round-robin alias), the script tracks where the
+# tmux session actually lives.
 #
 # Usage:
 #   ./start_dashboard.sh                       # use $BALMOREL_DASH_HOST
-#   ./start_dashboard.sh user@hostname         # override host for this run
+#   ./start_dashboard.sh user@hostname         # override entry host for this run
 #
 # Prerequisites on your laptop:
-#   • SSH key auth set up to the remote host (no password prompts)
+#   • SSH key auth set up to the entry host (no password prompts)
 #   • These env vars (add to ~/.bashrc / ~/.zshrc to persist):
-#       BALMOREL_DASH_HOST   user@hostname (required, or pass as arg)
-#         e.g.  dhrsh@hpclogin1.hpccluster.dtu.dk
+#       BALMOREL_DASH_HOST   user@<entry-host>  (required, or pass as arg)
+#         e.g.  dhrsh@hpclogin1.hpccluster.dtu.dk  (any login node works)
 #       BALMOREL_DASH_PATH   absolute path to the repo on the remote (required)
 #         e.g.  /work3/dhrsh/Balmorel/Balmorel_Results_Analysis_Tool
 #       BALMOREL_DASH_PORT   port to forward (optional, default: 8501)
-#
-# DTU HPC note: ssh round-robin can land you on hpclogin1/2/3/…  The tmux
-# session lives on the specific node you started it on, so pass that node
-# explicitly when re-attaching from a fresh session:
-#   ./start_dashboard.sh dhrsh@hpclogin2.hpccluster.dtu.dk
 #
 # Stop everything with: ./stop_dashboard.sh
 
 set -euo pipefail
 
-HOST="${1:-${BALMOREL_DASH_HOST:-}}"
+ENTRY_HOST="${1:-${BALMOREL_DASH_HOST:-}}"
 REPO_PATH="${BALMOREL_DASH_PATH:-}"
 PORT="${BALMOREL_DASH_PORT:-8501}"
 
-if [ -z "$HOST" ] || [ -z "$REPO_PATH" ]; then
+if [ -z "$ENTRY_HOST" ] || [ -z "$REPO_PATH" ]; then
     cat >&2 <<EOF
-❌ Missing remote host or repo path.
+❌ Missing entry host or repo path.
 
-Either pass the host as an argument:
-    ./start_dashboard.sh <user>@<hostname>
+Either pass the entry host as an argument:
+    ./start_dashboard.sh <user>@<any-login-node>
 
 Or set both env vars (add to ~/.bashrc / ~/.zshrc to persist):
-    export BALMOREL_DASH_HOST="<user>@<hostname>"
+    export BALMOREL_DASH_HOST="<user>@<any-login-node>"
         # e.g. dhrsh@hpclogin1.hpccluster.dtu.dk
     export BALMOREL_DASH_PATH="/path/to/Balmorel_Results_Analysis_Tool"
         # absolute path on the remote host
     # Optional:
     # export BALMOREL_DASH_PORT=8501
-
-The repo path always comes from \$BALMOREL_DASH_PATH (rarely changes per session).
 EOF
     exit 1
 fi
 
-# ── 1. Start dashboard on remote (idempotent — refuses duplicate) ──────────
-# `bash -lc` so the remote shell sources .bashrc/.profile and picks up the
-# conda env (assuming `conda activate balmorel-results-viz` is in there).
-echo "▶ Starting dashboard on $HOST..."
-ssh "$HOST" "bash -lc 'cd \"$REPO_PATH\" && ./launch.sh'"
+# Pull the user prefix off the entry host so we can re-build "user@<actual-node>"
+USER_PART="${ENTRY_HOST%%@*}"
+if [ "$USER_PART" = "$ENTRY_HOST" ]; then
+    USER_PART="$USER"
+fi
 
-# ── 2. Set up SSH tunnel in background (if not already up) ─────────────────
-TUNNEL_PATTERN="ssh -f -N -L $PORT:localhost:$PORT $HOST"
-if pgrep -f "$TUNNEL_PATTERN" >/dev/null 2>&1; then
-    echo "▶ SSH tunnel localhost:$PORT → $HOST already running."
+# ── 1. Look for an existing dashboard via the shared state file ────────────
+echo "▶ Checking for an existing dashboard via $ENTRY_HOST..."
+ACTUAL_FQDN="$(
+    ssh -o ConnectTimeout=10 -o BatchMode=no "$ENTRY_HOST" \
+        "cat \"$REPO_PATH/.dashboard_host\" 2>/dev/null || true" \
+    | head -1 | tr -d '[:space:]'
+)"
+
+if [ -n "$ACTUAL_FQDN" ]; then
+    ACTUAL_HOST="$USER_PART@$ACTUAL_FQDN"
+    echo "  ✓ State file points to $ACTUAL_FQDN"
+    echo "▶ Verifying / refreshing dashboard on $ACTUAL_FQDN..."
+    ssh "$ACTUAL_HOST" "bash -lc 'cd \"$REPO_PATH\" && ./launch.sh'"
 else
-    echo "▶ Opening SSH tunnel localhost:$PORT → $HOST..."
-    if ssh -f -N -L "$PORT:localhost:$PORT" "$HOST"; then
+    echo "  No existing session — starting a fresh one via $ENTRY_HOST..."
+    ssh "$ENTRY_HOST" "bash -lc 'cd \"$REPO_PATH\" && ./launch.sh'"
+    # launch.sh just wrote the state file; read it back
+    ACTUAL_FQDN="$(
+        ssh "$ENTRY_HOST" \
+            "cat \"$REPO_PATH/.dashboard_host\" 2>/dev/null || true" \
+        | head -1 | tr -d '[:space:]'
+    )"
+    if [ -z "$ACTUAL_FQDN" ]; then
+        echo "❌ launch.sh ran but didn't write .dashboard_host. Can't determine the actual node." >&2
+        exit 1
+    fi
+    ACTUAL_HOST="$USER_PART@$ACTUAL_FQDN"
+    echo "  ✓ Dashboard started on $ACTUAL_FQDN"
+fi
+
+# ── 2. Tunnel to the specific node ─────────────────────────────────────────
+TUNNEL_PATTERN="ssh -f -N -L $PORT:localhost:$PORT $ACTUAL_HOST"
+if pgrep -f "$TUNNEL_PATTERN" >/dev/null 2>&1; then
+    echo "▶ SSH tunnel localhost:$PORT → $ACTUAL_FQDN already up."
+else
+    echo "▶ Opening SSH tunnel localhost:$PORT → $ACTUAL_FQDN..."
+    if ssh -f -N -L "$PORT:localhost:$PORT" "$ACTUAL_HOST"; then
         echo "  ✓ Tunnel up."
     else
-        echo "⚠ Couldn't open tunnel — port $PORT may already be in use locally."
-        echo "  Check: lsof -iTCP:$PORT  (or: lsof -nP -iTCP:$PORT -sTCP:LISTEN)"
+        echo "⚠ Couldn't open tunnel — port $PORT may be in use locally." >&2
+        echo "  Check: lsof -iTCP:$PORT" >&2
         exit 1
     fi
 fi
@@ -95,13 +129,11 @@ fi
 cat <<EOF
 
 ✅ Dashboard reachable at $URL
+   Running on: $ACTUAL_FQDN
 
    Stop everything (remote streamlit + local tunnel):
        ./stop_dashboard.sh
 
-   Get a shell on the remote host:
-       ssh $HOST
-
    Watch remote streamlit logs:
-       ssh $HOST -t "tmux attach -t balmorel-dash"
+       ssh $ACTUAL_HOST -t "tmux attach -t balmorel-dash"
 EOF

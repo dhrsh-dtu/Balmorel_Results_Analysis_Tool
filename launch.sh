@@ -21,6 +21,13 @@ cd "$REPO_DIR"
 SESSION_NAME="${BALMOREL_DASH_SESSION:-balmorel-dash}"
 LOG_FILE="${BALMOREL_DASH_LOG:-/tmp/balmorel-dashboard.log}"
 PORT="${BALMOREL_DASH_PORT:-8501}"
+STATE_FILE="$REPO_DIR/.dashboard_host"
+
+# Write FQDN to state file so start_dashboard.sh on the laptop can discover
+# which specific login node the session is on (HPC's /work3 is shared).
+write_state() {
+    (hostname --fqdn 2>/dev/null || hostname) > "$STATE_FILE"
+}
 
 # ── Sanity checks ──────────────────────────────────────────────────────────
 if ! command -v streamlit >/dev/null 2>&1; then
@@ -34,8 +41,9 @@ EOF
     exit 1
 fi
 
-# Refuse to start a duplicate
+# Refuse to start a duplicate (but refresh the state file in case it's stale)
 if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    write_state
     cat <<EOF
 ⚠ Dashboard is already running in tmux session '$SESSION_NAME'.
   Attach:  tmux attach -t $SESSION_NAME
@@ -44,6 +52,7 @@ EOF
     exit 0
 fi
 if pgrep -f "streamlit run streamlit_app.py" >/dev/null 2>&1; then
+    write_state
     PIDS="$(pgrep -f 'streamlit run streamlit_app.py' | tr '\n' ' ')"
     cat <<EOF
 ⚠ A streamlit instance for this app is already running (PID: $PIDS).
@@ -56,6 +65,7 @@ fi
 if command -v tmux >/dev/null 2>&1; then
     tmux new-session -d -s "$SESSION_NAME" \
         "streamlit run streamlit_app.py --server.headless=true --server.port=$PORT"
+    write_state
     cat <<EOF
 ✅ Dashboard running in tmux session '$SESSION_NAME' on port $PORT.
 
@@ -68,6 +78,7 @@ else
     nohup streamlit run streamlit_app.py --server.headless=true --server.port="$PORT" \
         > "$LOG_FILE" 2>&1 &
     PID=$!
+    write_state
     cat <<EOF
 ✅ Dashboard running (PID $PID) on port $PORT.  [tmux not found, used nohup]
 

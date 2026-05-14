@@ -143,18 +143,18 @@ def tool_description() -> None:
             "**One-command remote launch (laptop → HPC):** if the dashboard runs "
             "on a remote host, `./start_dashboard.sh` on your laptop SSHes in, runs "
             "`./launch.sh` remotely, sets up the SSH tunnel, and opens your browser "
-            "— all in one go. The host can be passed as an argument (handy for "
-            "DTU's ssh round-robin) or fixed via env var:"
+            "— all in one go. The script auto-discovers which login node holds the "
+            "session via a state file in the shared filesystem, so you never need "
+            "to know whether you're on hpclogin1/2/3:"
         )
         st.code(
-            "# In your laptop shell ~/.bashrc / ~/.zshrc:\n"
+            "# One-time, in your laptop shell ~/.bashrc / ~/.zshrc:\n"
+            "export BALMOREL_DASH_HOST=\"<user>@<any-login-node>\"   # entry point\n"
             "export BALMOREL_DASH_PATH=\"/path/to/Balmorel_Results_Analysis_Tool\"\n"
-            "# Optional default host (override per-call by passing one):\n"
-            "# export BALMOREL_DASH_HOST=\"<user>@<hostname>\"\n"
             "\n"
-            "# From your laptop clone:\n"
-            "./start_dashboard.sh <user>@<hostname>   # start + tunnel + browser\n"
-            "./stop_dashboard.sh  <user>@<hostname>   # stop remote + close tunnel",
+            "# Then from your laptop clone — no host arg needed:\n"
+            "./start_dashboard.sh    # start + tunnel + browser\n"
+            "./stop_dashboard.sh     # stop remote + close tunnel",
             language="bash",
         )
         with st.expander("Other CLI options"):

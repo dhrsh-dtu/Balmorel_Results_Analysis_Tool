@@ -5,6 +5,28 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.9.0] — 2026-05-14
+
+Auto-discover which HPC login node holds the dashboard.
+
+### Added
+- **`.dashboard_host` state file** in the repo root, written by `launch.sh`
+  whenever it starts or detects a running session, removed by `stop.sh`.
+  Holds the FQDN of the node the session is currently on. Lives in HPC's
+  shared filesystem so any login node can read it.
+- **Auto-discovery in `start_dashboard.sh` / `stop_dashboard.sh`** —
+  the laptop-side scripts now SSH to the configured entry host, read the
+  state file, and re-route to the *actual* node holding the session before
+  tunneling / stopping. Removes the need to know whether the session is
+  on hpclogin1, hpclogin2, etc.
+
+### Changed
+- `BALMOREL_DASH_HOST` is now just an "entry point" — any login node works,
+  the script tracks the real session location through `.dashboard_host`.
+  Positional CLI arg still supported as an override for one-off runs.
+- **README** and **Tool Description "I'm a Balmorel user" tab** updated to
+  reflect the auto-discovery behaviour.
+
 ## [0.8.0] — 2026-05-14
 
 Rename and reshape the laptop-side launcher for multi-user / multi-node use.
