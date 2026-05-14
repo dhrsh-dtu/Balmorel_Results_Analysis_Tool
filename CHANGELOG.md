@@ -5,6 +5,23 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.8] — 2026-05-14
+
+### Changed
+- **Tool Description copy adjustments** (5 small edits):
+  - Balmorel link points to `github.com/balmorelcommunity/Balmorel`
+    (was `www.balmorel.com`).
+  - Intro paragraph reduced to one sentence; the "Load scenarios via
+    📂 Import Results, then explore the analysis pages" navigation hint
+    removed.
+  - `BALMOREL_ROOT` line in the Setup code block uses the shorter
+    `# Results auto-load` comment.
+  - "Foreground streamlit" entry removed from the "Other CLI options"
+    expander.
+  - Planetary Boundaries link points to the upstream branch
+    `github.com/balmorelcommunity/Balmorel/tree/Planetary_Boundaries`
+    instead of the downstream fork.
+
 ## [0.14.7] — 2026-05-14
 
 ### Removed

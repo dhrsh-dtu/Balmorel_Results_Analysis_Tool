@@ -43,8 +43,8 @@ def tool_description() -> None:
     st.title("🔋 Balmorel Results Analysis Tool")
     st.markdown(
         "An interactive web dashboard for exploring "
-        "[Balmorel](https://www.balmorel.com/) energy-system optimisation results. "
-        "Load scenarios via **📂 Import Results**, then explore the analysis pages."
+        "[Balmorel](https://github.com/balmorelcommunity/Balmorel) "
+        "energy-system optimisation results."
     )
 
     st.divider()
@@ -115,7 +115,7 @@ def tool_description() -> None:
             "\n"
             "# Add these two lines to ~/.bashrc on HPC — set once, forget forever:\n"
             "conda activate balmorel-results-viz                  # activate dashboard env\n"
-            "export BALMOREL_ROOT=/path/to/your/Balmorel/run      # which run to auto-load",
+            "export BALMOREL_ROOT=/path/to/your/Balmorel/         # Results auto-load",
             language="bash",
         )
         st.caption(
@@ -162,9 +162,7 @@ def tool_description() -> None:
                 "python -m balmorel_dashboard --list-scenarios $BALMOREL_ROOT\n\n"
                 "# Limit to specific scenarios:\n"
                 "python -m balmorel_dashboard $BALMOREL_ROOT \\\n"
-                "    --scenario base --scenario 1_Scenario_Nordics\n\n"
-                "# Foreground streamlit (terminal occupied, live logs visible):\n"
-                "streamlit run streamlit_app.py --server.headless=true",
+                "    --scenario base --scenario 1_Scenario_Nordics",
                 language="bash",
             )
 
@@ -201,12 +199,12 @@ def tool_description() -> None:
     # ── Built on / links ────────────────────────────────────────────────────
     st.markdown("### Built on")
     st.markdown(
-        "- **[Balmorel](https://www.balmorel.com/)** — the open-source "
+        "- **[Balmorel](https://github.com/balmorelcommunity/Balmorel)** — the open-source "
         "energy-system optimisation model whose results this dashboard analyses.\n"
         "- **[pybalmorel](https://github.com/Mathias157/pybalmorel)** — Python "
         "helpers for Balmorel. The dashboard inherits its column conventions "
         "(`Year`, `Country`, `Region`, …) and tech/fuel color palette.\n"
-        "- **[Planetary Boundaries fork](https://github.com/dhrsh-dtu/Balmorel_PlanetaryBoundaries)** — "
+        "- **[Planetary Boundaries fork](https://github.com/balmorelcommunity/Balmorel/tree/Planetary_Boundaries)** — "
         "Balmorel extended with `TL_*` / `IS_*` symbols for impact-score and "
         "transgression-level outputs.\n"
         "- **[Streamlit](https://streamlit.io/)** and **[Plotly](https://plotly.com/python/)** — "
