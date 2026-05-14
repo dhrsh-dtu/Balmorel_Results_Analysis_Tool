@@ -152,11 +152,11 @@ def tool_description() -> None:
             language="bash",
         )
         st.caption(
-            "`start_dashboard.sh` prints `http://localhost:8501` plus two ways "
-            "to reach it: in **VS Code / Cursor / JetBrains Remote SSH** the "
-            "port auto-forwards (just click the URL); from a **plain SSH "
-            "terminal** copy the printed `ssh -L …` command into a new laptop "
-            "shell first."
+            "Open `http://localhost:8501` in your laptop browser. In "
+            "**VS Code / Cursor / JetBrains Remote SSH** the port auto-forwards "
+            "— just click the URL. From **plain SSH**, first run "
+            "`ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk` on "
+            "your laptop."
         )
 
         with st.expander("Other CLI options"):

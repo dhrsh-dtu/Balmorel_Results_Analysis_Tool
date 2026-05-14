@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.6] — 2026-05-14
+
+### Changed
+- **Drop the SSH tunnel command from `start_dashboard.sh` output** —
+  most Balmorel users on HPC work through VS Code / Cursor / JetBrains
+  Remote SSH which auto-forwards ports, so the line was dead weight in
+  every run. Output is now two lines: URL + Stop. The tunnel command
+  for plain-SSH users moved into the README and Tool Description
+  caption, where it's discoverable when actually needed.
+
 ## [0.14.5] — 2026-05-14
 
 ### Changed

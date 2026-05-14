@@ -78,23 +78,7 @@ else
     RUNNING_DESC="PID $!, logs: $LOG_FILE"
 fi
 
-# ── Resolve a usable FQDN for the tunnel hint ──────────────────────────────
-HOSTNAME_FQDN="$(hostname --fqdn 2>/dev/null || hostname 2>/dev/null || echo localhost)"
-case "$HOSTNAME_FQDN" in
-    *.*) ;;
-    *)
-        DNS_DOMAIN="$(dnsdomainname 2>/dev/null || true)"
-        if [ -n "$DNS_DOMAIN" ]; then
-            HOSTNAME_FQDN="${HOSTNAME_FQDN}.${DNS_DOMAIN}"
-        fi
-        ;;
-esac
-
 cat <<EOF
 ✅ Dashboard running: http://localhost:$PORT  ($RUNNING_DESC)
-
-   Plain SSH (IDE Remote SSH auto-forwards — skip this line):
-     ssh -L $PORT:localhost:$PORT $USER@$HOSTNAME_FQDN
-
    Stop: ./stop_dashboard.sh
 EOF

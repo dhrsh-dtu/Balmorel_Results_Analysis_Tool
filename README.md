@@ -79,9 +79,15 @@ python -m balmorel_dashboard $BALMOREL_ROOT
 ./start_dashboard.sh
 ```
 
-`start_dashboard.sh` backgrounds streamlit using `tmux` when available (attach later with `tmux attach -t balmorel-dash` to see live logs) and falls back to `nohup` + log file when it isn't. It also prints a ready-to-copy `ssh -L` tunnel command with your current node's hostname filled in. Stop with `./stop_dashboard.sh`.
+`start_dashboard.sh` backgrounds streamlit using `tmux` when available (attach later with `tmux attach -t balmorel-dash` to see live logs) and falls back to `nohup` + log file when it isn't. Stop with `./stop_dashboard.sh`.
 
-**To view from your laptop**, copy the printed `ssh -L …` command into a new terminal on your laptop, then open <http://localhost:8501> in your browser. Scenarios are pre-loaded; head to the **📂 Import Results** page to upload more or change the folder path.
+**To view from your laptop:** open <http://localhost:8501> in your browser. If you're in **VS Code / Cursor / JetBrains Remote SSH**, the port auto-forwards — just click the URL. If you're on **plain SSH** from a terminal, set up the tunnel from your laptop first:
+
+```bash
+ssh -L 8501:localhost:8501 <your-user>@hpclogin1.hpccluster.dtu.dk
+```
+
+Scenarios are pre-loaded; head to the **📂 Import Results** page to upload more or change the folder path.
 
 To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./start_dashboard.sh`.
 
