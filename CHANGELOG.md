@@ -5,6 +5,34 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.4.0] — 2026-05-14
+
+Simplify dashboard surface: drop the Python launcher, expose folder load in the UI.
+
+### Removed
+- **`--serve` CLI mode** and its subprocess machinery in `__main__.py`.
+  The dashboard is launched directly with `streamlit run streamlit_app.py`
+  now; the CLI is export-only. Set `BALMOREL_ROOT` once in your shell
+  (e.g. in `~/.bashrc`) to auto-load scenarios from a folder.
+- **`--no-export`, `--force-reexport`, `--port`, `--no-browser`** flags
+  (all were tied to `--serve`).
+- **`needs_reexport` and `find_existing_zips` helpers** in `exporter.py`,
+  used only by the removed `_serve()` function.
+
+### Changed
+- **Folder auto-load is now a sidebar text input** in `streamlit_app.py`,
+  prefilled from `$BALMOREL_ROOT` when present, so a different folder can
+  be loaded ad-hoc without restarting the dashboard. The upload widget
+  stays visible alongside — same UI whether you're on HPC, laptop, or
+  Streamlit Cloud.
+- **Tool Description "I'm a Balmorel user" tab** rewritten to show the
+  two-step export-then-launch flow (no `--serve` reference).
+- **`setup.sh` / `setup.bat`** post-install next-steps updated to the new
+  export + `streamlit run` workflow.
+- **README** Path A quick-start and "Useful flags" list trimmed to the
+  remaining export-only CLI surface (`--scenario`, `--gams-dir`,
+  `--list-scenarios`, `-v`).
+
 ## [0.3.0] — 2026-05-13
 
 Local-first workflow: one-command setup + one-command launch.

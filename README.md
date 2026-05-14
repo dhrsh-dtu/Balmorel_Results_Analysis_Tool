@@ -6,14 +6,14 @@
 
 A simple post-analysis tool built on [pybalmorel](https://github.com/Mathias157/pybalmorel) for exploring results from [Balmorel](https://www.balmorel.com/) energy-system runs. Two paths to use it depending on whether you have Balmorel set up locally:
 
-- **🔧 Balmorel users:** one command exports your scenarios and launches the dashboard with everything pre-loaded — no uploads.
+- **🔧 Balmorel users:** export your scenarios to portable `.zip` archives, then launch the dashboard — it auto-loads everything from your Balmorel root, no uploads needed.
 - **🤝 Collaborators:** visit the live URL, drag in a `.zip` someone shared with you, explore. No install required.
 
 🔗 **Live app:** _(coming soon — deployed to Streamlit Community Cloud, access by approval)_
 
 ## Highlights
 
-- **One-command local use:** `python -m balmorel_dashboard --serve /path/to/Balmorel` exports any out-of-date scenarios and opens the dashboard with them pre-loaded.
+- **Local auto-load:** export with `python -m balmorel_dashboard /path/to/Balmorel`, point `BALMOREL_ROOT` at the same folder, and `streamlit run streamlit_app.py` finds and loads every scenario.
 - **Cloud option for sharing:** same dashboard on Streamlit Cloud with email-allowlist access; collaborators drag-drop a `.zip`.
 - **Built on pybalmorel:** inherits the community's tech/fuel color palette and column conventions so figures match what other Balmorel researchers produce.
 - **Auto-adapts to the data:** the Planetary Boundaries page appears only when `TL_*` symbols are present; transmission tabs hide if a commodity isn't in the archive.
@@ -56,16 +56,22 @@ cd Balmorel_Results_Analysis_Tool
 # setup.bat             # Windows
 ```
 
-`setup.sh` also sanity-checks that GAMS is reachable (warns if not — `--serve --no-export` still works without GAMS).
+`setup.sh` also sanity-checks that GAMS is reachable (warns if not — the dashboard still works on already-exported zips even without GAMS).
 
-Then activate the env and launch — one command exports any out-of-date scenarios, opens the dashboard with everything pre-loaded:
+Activate the env, export your scenarios, then launch the dashboard — it auto-loads everything from `BALMOREL_ROOT`:
 
 ```bash
 conda activate balmorel-results-viz
-python -m balmorel_dashboard --serve /path/to/Balmorel
+
+# 1. Export Balmorel scenarios to portable zip archives:
+python -m balmorel_dashboard /path/to/Balmorel
+
+# 2. Tell the dashboard where to find them, then launch:
+export BALMOREL_ROOT=/path/to/Balmorel    # add to ~/.bashrc to persist
+streamlit run streamlit_app.py --server.headless=true
 ```
 
-That's it. No upload step.
+Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote host). Scenarios are pre-loaded; the upload widget stays available for ad-hoc archives.
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 
@@ -99,12 +105,7 @@ python -m balmorel_dashboard --list-scenarios /path/to/Balmorel
 ```
 
 Useful flags:
-- `--serve`: after exporting, launch the local Streamlit dashboard with all scenarios pre-loaded
-- `--no-export`: with `--serve`, skip export and just launch on existing zips (no GAMS needed)
-- `--force-reexport`: with `--serve`, re-export everything (default is incremental: only re-runs scenarios whose GDX is newer than the existing zip)
-- `--port <n>`: with `--serve`, choose a different port (default 8501)
-- `--no-browser`: with `--serve`, don't auto-open the browser
-- `--scenario <name>`: limit export / serve; repeatable
+- `--scenario <name>`: limit export to one or more named scenarios; repeatable
 - `--gams-dir <path>`: GAMS install (default: auto-detected from `PATH`, `GAMS_SYSDIR`, or `GAMSDIR`)
 - `--list-scenarios`: discover scenarios + file sizes; no export
 - `-v` / `--verbose`: per-scenario timings

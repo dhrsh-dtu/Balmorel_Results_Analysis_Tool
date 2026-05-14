@@ -117,8 +117,8 @@ def ingest_uploads(files: list["UploadedFile"]) -> None:
 def ingest_local_paths(paths: list[str | "os.PathLike"]) -> tuple[int, int]:
     """Load each local .zip path into session state.
 
-    Used in local-launch mode (`--serve`) where the dashboard auto-discovers
-    archives under `<BALMOREL_ROOT>/*/output/zip_files/`.
+    Used by the folder auto-load path in `streamlit_app.py`, which scans
+    `<BALMOREL_ROOT>/*/output/zip_files/*.zip` server-side.
 
     Returns (n_loaded, n_skipped) — skipped means already in session state
     with the same content hash.

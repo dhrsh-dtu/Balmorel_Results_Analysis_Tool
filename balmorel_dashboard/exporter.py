@@ -127,30 +127,6 @@ def _check_legacy_root_zip_files(balmorel_root: Path) -> Path | None:
     return legacy if legacy.is_dir() else None
 
 
-def needs_reexport(model_dir: Path, scenario_name: str) -> bool:
-    """True if the scenario's zip is missing OR older than its source GDX(s).
-
-    Used by `--serve` to do an incremental "make"-style re-export: only
-    scenarios whose MainResults.gdx (or all_endofmodel.gdx) has been touched
-    since the last export get re-run.
-    """
-    zip_path = scenario_zip_path(model_dir, scenario_name)
-    if not zip_path.is_file():
-        return True
-    zip_mtime = zip_path.stat().st_mtime
-    for source_name in ("MainResults.gdx", "all_endofmodel.gdx"):
-        p = model_dir / source_name
-        if p.is_file() and p.stat().st_mtime > zip_mtime:
-            return True
-    return False
-
-
-def find_existing_zips(balmorel_root: Path) -> list[Path]:
-    """All scenario archives currently under `<root>/<scenario>/output/zip_files/`."""
-    balmorel_root = balmorel_root.resolve()
-    return sorted(balmorel_root.glob("*/output/zip_files/MainResults_*.zip"))
-
-
 def _fmt_size(n_bytes: int) -> str:
     if n_bytes >= 1e9:
         return f"{n_bytes/1e9:.1f} GB"

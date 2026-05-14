@@ -10,8 +10,8 @@
 #   • Otherwise — fall back to `pip install` in the currently active Python.
 #
 # After install, checks for a GAMS installation and prints a warning (not an
-# error) if it isn't found — `--serve --no-export` still works on archives
-# someone else exported.
+# error) if it isn't found — you can still launch the dashboard on archives
+# that someone else exported.
 
 set -euo pipefail
 
@@ -89,12 +89,14 @@ else
   ⚠ No GAMS installation detected on PATH / GAMS_SYSDIR / GAMSDIR.
 
     You can still:
-      • View existing scenario archives:
-          python -m balmorel_dashboard --serve --no-export /path/to/Balmorel
+      • View existing scenario archives by pointing the dashboard at a
+        folder of already-exported zips:
+          export BALMOREL_ROOT=/path/to/Balmorel
+          streamlit run streamlit_app.py --server.headless=true
       • Upload zips received from a collaborator via the dashboard UI.
 
     To enable full exports, add your GAMS install to PATH, or pass
-    --gams-dir /path/to/gams to the CLI at run time.
+    --gams-dir /path/to/gams to the export CLI at run time.
 EOF
 fi
 
@@ -105,7 +107,13 @@ cat <<EOF
 
 Next steps:
   $NEXT_STEP
-  python -m balmorel_dashboard --serve /path/to/Balmorel
+
+  # 1. Export scenarios to .zip archives:
+  python -m balmorel_dashboard /path/to/Balmorel
+
+  # 2. Launch the dashboard (auto-loads scenarios from BALMOREL_ROOT):
+  export BALMOREL_ROOT=/path/to/Balmorel          # add to ~/.bashrc to persist
+  streamlit run streamlit_app.py --server.headless=true
 
 Or, just inspect what scenarios are present:
   python -m balmorel_dashboard --list-scenarios /path/to/Balmorel

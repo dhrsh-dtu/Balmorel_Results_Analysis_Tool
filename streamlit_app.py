@@ -1,14 +1,14 @@
 """
 Balmorel Results Analysis Tool — entrypoint.
 
-Two modes, same code:
-  • Local mode  — env var BALMOREL_ROOT is set (by `python -m
-                  balmorel_dashboard --serve <root>`). The dashboard
-                  auto-discovers every `<root>/*/output/zip_files/*.zip`
-                  and loads them on startup. Upload widget stays as an
-                  escape hatch.
-  • Cloud mode  — BALMOREL_ROOT is not set (Streamlit Community Cloud).
-                  Only the upload widget; users drag in archives.
+Two ways to load scenarios into the dashboard, both always available:
+  • Folder path (sidebar text input). Prefilled from $BALMOREL_ROOT if set.
+    The Streamlit server scans `<root>/*/output/zip_files/MainResults_*.zip`
+    and auto-loads everything. Useful on HPC / laptop where the zips already
+    live on the same machine as Streamlit.
+  • Upload widget. Drag-and-drop one or more `.zip` archives. Works
+    everywhere, including Streamlit Cloud where the server has no access
+    to the user's filesystem.
 
 Uses `st.navigation` so the home page can be labelled "Tool Description"
 in the sidebar (instead of Streamlit's default "streamlit app").
@@ -33,30 +33,25 @@ theme.apply()
 data.ensure_state()
 
 
-# ── Local-mode auto-load ────────────────────────────────────────────────────
-BALMOREL_ROOT = os.environ.get("BALMOREL_ROOT")
+# ── Folder auto-load helper ────────────────────────────────────────────────
+_DEFAULT_ROOT = os.environ.get("BALMOREL_ROOT", "")
 
 
-def _autoload_from_root(root: str) -> None:
-    """Discover and ingest all `<root>/*/output/zip_files/*.zip` once per session."""
-    if st.session_state.get("_autoload_done") == root:
-        return
-    p = Path(root)
-    paths = sorted(p.glob("*/output/zip_files/MainResults_*.zip"))
+def _autoload_from_root(root: str) -> int:
+    """Discover and ingest all `<root>/*/output/zip_files/*.zip` once per root.
+
+    Returns the number of archives found at this root (0 means the path
+    resolved to nothing — invalid path, or no zips yet).
+    """
+    cached_root = st.session_state.get("_autoload_done")
+    if cached_root == root:
+        return st.session_state.get("_autoload_count", 0)
+    paths = sorted(Path(root).glob("*/output/zip_files/MainResults_*.zip"))
     if paths:
         data.ingest_local_paths(paths)
     st.session_state["_autoload_done"] = root
-
-
-if BALMOREL_ROOT:
-    _autoload_from_root(BALMOREL_ROOT)
-
-
-def _refresh_autoload() -> None:
-    """Force a rescan of the Balmorel root (e.g. user re-exported a scenario)."""
-    st.session_state.pop("_autoload_done", None)
-    if BALMOREL_ROOT:
-        _autoload_from_root(BALMOREL_ROOT)
+    st.session_state["_autoload_count"] = len(paths)
+    return len(paths)
 
 
 # ── Sidebar (runs on every page) ────────────────────────────────────────────
@@ -64,17 +59,25 @@ def _render_sidebar() -> None:
     with st.sidebar:
         st.markdown("## 🔋 Balmorel Results")
 
-        if BALMOREL_ROOT:
-            # Local mode: announce auto-load + provide a Refresh button.
-            st.markdown(
-                f"📂 **Auto-loaded from**  \n"
-                f"<code style='font-size:11px;color:#555'>{BALMOREL_ROOT}</code>",
-                unsafe_allow_html=True,
-            )
-            if st.button("↻ Refresh", help="Re-scan the Balmorel root for new or updated archives"):
-                _refresh_autoload()
-                st.rerun()
-            st.caption("Drop additional archives below to compare.")
+        root_input = st.text_input(
+            "📂 Load from folder (server-side)",
+            value=_DEFAULT_ROOT,
+            placeholder="/path/to/Balmorel root",
+            help=(
+                "Path on the machine running Streamlit (HPC or laptop). "
+                "Scans for `<root>/*/output/zip_files/MainResults_*.zip`. "
+                "Pre-filled from `$BALMOREL_ROOT` when set. Leave empty on cloud."
+            ),
+        ).strip()
+
+        if root_input:
+            n = _autoload_from_root(root_input)
+            if n == 0:
+                st.caption(f"⚠ No archives found at `{root_input}`")
+            else:
+                if st.button("↻ Refresh", help="Re-scan for new or updated archives"):
+                    st.session_state.pop("_autoload_done", None)
+                    st.rerun()
 
         uploaded = st.file_uploader(
             "📤 Upload scenario archive(s)",
@@ -221,28 +224,32 @@ def tool_description() -> None:
             language="bash",
         )
         st.markdown(
-            "**Then one command does everything** — exports any out-of-date "
-            "scenarios, launches the dashboard, opens your browser:"
+            "**Export your scenarios** to portable `.zip` archives (one per scenario):"
         )
         st.code(
             "conda activate balmorel-results-viz\n"
-            "python -m balmorel_dashboard --serve /path/to/Balmorel",
+            "python -m balmorel_dashboard /path/to/Balmorel",
             language="bash",
         )
         st.markdown(
-            "Pick scenarios from the sidebar (already pre-loaded) and explore "
-            "the pages on the left. **That's it — no upload step, no separate launch.**"
+            "**Point the dashboard at the Balmorel root and launch:**"
         )
-        with st.expander("More CLI options"):
+        st.code(
+            "export BALMOREL_ROOT=/path/to/Balmorel    # add to ~/.bashrc for persistence\n"
+            "streamlit run streamlit_app.py --server.headless=true",
+            language="bash",
+        )
+        st.markdown(
+            "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
+            "if Streamlit runs on a remote machine). Scenarios pre-load from the "
+            "folder; the upload widget stays available for ad-hoc archives."
+        )
+        with st.expander("Other CLI options"):
             st.code(
-                "# Export only (no UI):\n"
-                "python -m balmorel_dashboard /path/to/Balmorel\n\n"
-                "# Re-view existing zips without GAMS available:\n"
-                "python -m balmorel_dashboard --serve --no-export /path/to/Balmorel\n\n"
                 "# See what's there:\n"
                 "python -m balmorel_dashboard --list-scenarios /path/to/Balmorel\n\n"
                 "# Limit to specific scenarios:\n"
-                "python -m balmorel_dashboard --serve /path/to/Balmorel \\\n"
+                "python -m balmorel_dashboard /path/to/Balmorel \\\n"
                 "    --scenario base --scenario 1_Scenario_Nordics",
                 language="bash",
             )

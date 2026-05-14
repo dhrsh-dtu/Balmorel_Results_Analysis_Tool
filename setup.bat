@@ -96,8 +96,10 @@ if %ERRORLEVEL% EQU 0 (
     )
 ) else (
     echo   WARNING: GAMS not found on PATH.
-    echo   You can still re-view existing zips:
-    echo       python -m balmorel_dashboard --serve --no-export \path\to\Balmorel
+    echo   You can still re-view existing zips by pointing the dashboard at
+    echo   a folder of already-exported archives:
+    echo       set BALMOREL_ROOT=C:\path\to\Balmorel
+    echo       streamlit run streamlit_app.py --server.headless=true
     echo   To enable full exports, add GAMS to PATH or pass --gams-dir at run time.
 )
 
@@ -109,7 +111,13 @@ echo Setup complete.
 echo.
 echo Next steps:
 echo   %NEXT_STEP%
-echo   python -m balmorel_dashboard --serve C:\path\to\Balmorel
+echo.
+echo   REM 1. Export scenarios to .zip archives:
+echo   python -m balmorel_dashboard C:\path\to\Balmorel
+echo.
+echo   REM 2. Launch the dashboard (auto-loads scenarios from BALMOREL_ROOT):
+echo   set BALMOREL_ROOT=C:\path\to\Balmorel
+echo   streamlit run streamlit_app.py --server.headless=true
 echo.
 
 endlocal
