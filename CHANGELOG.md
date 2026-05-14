@@ -5,6 +5,15 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.11] — 2026-05-14
+
+### Changed
+- **Top padding bumped to 2.5rem** (was 1.5rem in 0.14.10).
+- **Drop `toolbarMode = "minimal"`** from `.streamlit/config.toml` so the
+  full Streamlit toolbar (Share / Star / Edit / Rerun / Clear cache /
+  Print / Record screen) appears in the top-right of every page, matching
+  what the pLCA-Visualization-Tool gets out of the box.
+
 ## [0.14.10] — 2026-05-14
 
 ### Changed
