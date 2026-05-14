@@ -137,9 +137,23 @@ def tool_description() -> None:
             "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
             "if Streamlit runs on a remote machine). Scenarios pre-load from "
             "`$BALMOREL_ROOT`; head to **📂 Import Results** to add more via "
-            "upload or change the folder path on the fly. To see streamlit's "
-            "live startup logs (terminal stays occupied), run `streamlit run "
-            "streamlit_app.py --server.headless=true` directly instead of `./launch.sh`."
+            "upload or change the folder path on the fly."
+        )
+        st.markdown(
+            "**One-command remote launch (laptop → HPC):** if the dashboard runs "
+            "on a remote host, `./launch_remote.sh` on your laptop SSHes in, runs "
+            "`./launch.sh` remotely, sets up the SSH tunnel, and opens your browser "
+            "— all in one go. Configure once via env vars in your laptop shell:"
+        )
+        st.code(
+            "# Add to laptop ~/.bashrc / ~/.zshrc:\n"
+            "export BALMOREL_REMOTE_HOST=\"<user>@<hostname>\"\n"
+            "export BALMOREL_REMOTE_PATH=\"/path/to/Balmorel_Results_Analysis_Tool\"\n"
+            "\n"
+            "# Then from your laptop clone:\n"
+            "./launch_remote.sh    # start everything + open browser\n"
+            "./stop_remote.sh      # stop remote + close tunnel",
+            language="bash",
         )
         with st.expander("Other CLI options"):
             st.code(
@@ -149,7 +163,9 @@ def tool_description() -> None:
                 "python -m balmorel_dashboard $BALMOREL_ROOT \\\n"
                 "    --scenario base --scenario 1_Scenario_Nordics\n\n"
                 "# One-shot GAMS path (no env var needed):\n"
-                "python -m balmorel_dashboard --gams-dir /appl/gams/50.4.1 $BALMOREL_ROOT",
+                "python -m balmorel_dashboard --gams-dir /appl/gams/50.4.1 $BALMOREL_ROOT\n\n"
+                "# Foreground launch (terminal occupied, live logs visible):\n"
+                "streamlit run streamlit_app.py --server.headless=true",
                 language="bash",
             )
 

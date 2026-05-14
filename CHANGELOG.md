@@ -5,6 +5,29 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.7.0] — 2026-05-14
+
+True one-command launch from the laptop: SSH tunnel + remote start + browser.
+
+### Added
+- **`launch_remote.sh`** — laptop-side launcher that SSHes into the configured
+  remote host, runs `./launch.sh` there (idempotent — refuses duplicates via
+  the tmux check), opens an SSH port-forward tunnel in the background, and
+  opens the dashboard URL in your default browser (`open` / `xdg-open` /
+  `start`, with a graceful fallback message). Configured via three env vars
+  set in the laptop shell:
+    - `BALMOREL_REMOTE_HOST` — `user@hostname` (required)
+    - `BALMOREL_REMOTE_PATH` — absolute path to the repo on the remote (required)
+    - `BALMOREL_REMOTE_PORT` — port to forward (optional, default 8501)
+- **`stop_remote.sh`** — the companion: stops the remote streamlit via
+  `./stop.sh` over SSH and kills the local `ssh -f -N -L` tunnel.
+
+### Changed
+- **README** Path A picks up a new "Path A' — launch a remote dashboard from
+  your laptop" sub-section with the env var setup and the launch/stop loop.
+- **Tool Description "I'm a Balmorel user" tab** documents the new
+  `launch_remote.sh` flow.
+
 ## [0.6.0] — 2026-05-14
 
 Free the terminal: one-command background launch.

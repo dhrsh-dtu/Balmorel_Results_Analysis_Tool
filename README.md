@@ -83,6 +83,36 @@ Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote
 
 If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the text input on Import Results for the folder. To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./launch.sh`.
 
+#### 🔧 Path A' — launch a remote dashboard from your laptop (one command)
+
+When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your laptop, `./launch_remote.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
+
+1. **One-time:** set your HPC details in your laptop's `~/.bashrc` (or `~/.zshrc`) and make sure SSH key auth is working:
+
+   ```bash
+   export BALMOREL_REMOTE_HOST="<user>@<hostname>"        # e.g. dhrsh@hpclogin1.hpccluster.dtu.dk
+   export BALMOREL_REMOTE_PATH="/path/to/Balmorel_Results_Analysis_Tool"
+   # export BALMOREL_REMOTE_PORT=8501                     # optional
+   ```
+
+2. **Launch:**
+
+   ```bash
+   ./launch_remote.sh    # on your laptop
+   ```
+
+   This SSHes in, runs `./launch.sh` on the remote (idempotent — won't double-start), opens an SSH tunnel in the background, and opens the dashboard in your default browser.
+
+3. **Stop:**
+
+   ```bash
+   ./stop_remote.sh      # on your laptop
+   ```
+
+   Stops the remote streamlit and kills the local tunnel.
+
+Watch the remote logs at any time with `ssh $BALMOREL_REMOTE_HOST -t "tmux attach -t balmorel-dash"` (Ctrl+b then d to detach).
+
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 
 1. Receive a `.zip` archive from a Balmorel user (it's portable, typically <1 MB).
