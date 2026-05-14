@@ -5,6 +5,23 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.12.0] — 2026-05-14
+
+Refresh the Tool Description page after the workflow simplifications.
+
+### Changed
+- **"What this tool does"** now lists **📥 Model Inputs** (page has existed
+  since v0.2.0 but was missing from the overview). Image-export note moved
+  to a caption below the two columns so the feature lists stay balanced.
+- **"I'm a Balmorel user" tab** restructured into a clear 4-phase progression:
+    1. One-time setup on HPC (clone + `setup.sh` + `~/.bashrc` exports)
+    2. One-time setup on laptop (clone + one env var + `ssh-copy-id`)
+    3. Re-export when Balmorel scenarios change
+    4. Daily — `./start_dashboard.sh` from the laptop
+- **Direct on-HPC launch** (`./launch.sh` + manual SSH tunnel) moved into
+  an expander as the niche path for interactive HPC sessions, rather than
+  being the primary instructions.
+
 ## [0.11.0] — 2026-05-14
 
 Auto-detect GAMS at well-known cluster paths.

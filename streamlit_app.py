@@ -57,26 +57,32 @@ def tool_description() -> None:
     f1, f2 = st.columns(2)
     with f1:
         st.markdown(
+            "**📥 Model Inputs** — sector coverage, technology portfolio, "
+            "cost inputs (capex, O&M, lifetime), demand by category, "
+            "sector-coupling decomposition.\n\n"
             "**📊 Overview** — KPI cards (cost, capacity, production, max TL), "
             "cost-category breakdown, capacity mix, production donuts, health checks.\n\n"
             "**⚡ Capacity** — generation and storage tabs, stacked bars by "
             "Technology or Fuel, country heatmap, endogenous/exogenous filter.\n\n"
             "**🏭 Production** — annual totals, by-country breakdown, "
-            "per-scenario donut grids.\n\n"
-            "**💰 Prices & Demand** — auto-tabs for Electricity, Heat, Hydrogen; "
-            "regional prices, demand by category, hourly profiles."
+            "per-scenario donut grids."
         )
     with f2:
         st.markdown(
+            "**💰 Prices & Demand** — auto-tabs for Electricity, Heat, Hydrogen; "
+            "regional prices, demand by category, hourly profiles.\n\n"
             "**🌍 Planetary Boundaries** — radar of all `TL_*` indicators against "
             "the boundary ring; per-indicator drill-down with source attribution "
             "(generation / transmission / EVs) and fuel/technology breakdown.\n\n"
             "**🔌 Transmission** — flow matrix heatmap, net trade per country, "
             "top lines by capacity, line utilization.\n\n"
             "**🔍 Raw Explorer** — search any symbol by name or description, "
-            "quick filters, numeric summary, CSV download.\n\n"
-            "**🖼️ Image export** is available on every chart via the Plotly toolbar."
+            "quick filters, numeric summary, CSV download."
         )
+    st.caption(
+        "🖼️ Image export (PNG) is available on every chart via the Plotly toolbar; "
+        "most pages also offer CSV downloads of the underlying tables."
+    )
 
     st.divider()
 
@@ -91,82 +97,92 @@ def tool_description() -> None:
 
     with tab_balm:
         st.markdown(
-            "You run Balmorel locally — have GAMS + Python on your machine.\n\n"
-            "**One-time setup** (creates the `balmorel-results-viz` conda env "
-            "if conda is available, or installs into your current Python "
-            "otherwise; warns if GAMS isn't on PATH):"
+            "You run Balmorel on HPC and want to view results from your laptop. "
+            "After a one-time setup on each side, the daily workflow is **one "
+            "command** on your laptop — SSH tunnel + remote launch + browser "
+            "open all happen automatically."
         )
+
+        st.markdown("#### 1️⃣ One-time setup on HPC")
         st.code(
+            "# Clone + install (creates the balmorel-results-viz conda env):\n"
             "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
             "cd Balmorel_Results_Analysis_Tool\n"
-            "./setup.sh           # Linux / macOS\n"
-            "# setup.bat          # Windows",
-            language="bash",
-        )
-        st.markdown(
-            "**Set the dashboard root** (add to `~/.bashrc` to persist across shells):"
-        )
-        st.code(
-            "export BALMOREL_ROOT=/path/to/Balmorel    # tells the dashboard which folder to auto-load",
+            "./setup.sh                          # Linux/macOS\n"
+            "\n"
+            "# Add to HPC ~/.bashrc:\n"
+            "source /path/to/miniconda3/etc/profile.d/conda.sh\n"
+            "conda activate balmorel-results-viz\n"
+            "export BALMOREL_ROOT=/path/to/your/Balmorel/run",
             language="bash",
         )
         st.caption(
-            "GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`). Set "
-            "`GAMS_SYSDIR` or pass `--gams-dir /path/to/gams` only if you're on "
-            "a different cluster. `BALMOREL_ROOT` is only needed for folder "
-            "auto-load — leave unset to use the upload widget."
+            "GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`). On other "
+            "clusters, also `export GAMS_SYSDIR=…` or pass `--gams-dir` at "
+            "export time."
         )
-        st.markdown(
-            "**Export your scenarios** to portable `.zip` archives (one per scenario):"
-        )
+
+        st.markdown("#### 2️⃣ One-time setup on laptop")
         st.code(
-            "conda activate balmorel-results-viz\n"
+            "# Clone the repo on laptop too:\n"
+            "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
+            "\n"
+            "# Add to laptop ~/.bashrc (or ~/.zshrc on macOS):\n"
+            "export BALMOREL_DASH_PATH=/work3/<your-user>/Balmorel/Balmorel_Results_Analysis_Tool\n"
+            "\n"
+            "# Set up SSH key auth so no password prompts (only needed once):\n"
+            "ssh-copy-id <your-user>@hpclogin1.hpccluster.dtu.dk",
+            language="bash",
+        )
+        st.caption(
+            "The launcher derives your username and the HPC entry host from "
+            "`BALMOREL_DASH_PATH`, so this is the only env var needed on the "
+            "laptop side for DTU users."
+        )
+
+        st.markdown("#### 3️⃣ Whenever Balmorel scenarios change")
+        st.markdown("Re-export the GDX files to portable zip archives on HPC:")
+        st.code(
             "python -m balmorel_dashboard $BALMOREL_ROOT",
             language="bash",
         )
-        st.markdown(
-            "**Launch the dashboard in the background** (uses `tmux` if "
-            "available, falls back to `nohup` — terminal stays usable):"
-        )
+
+        st.markdown("#### 4️⃣ Daily — launch from your laptop")
         st.code(
-            "./launch.sh        # start (Linux/macOS)\n"
-            "./stop.sh          # stop",
+            "./start_dashboard.sh    # SSH + launch.sh on HPC + tunnel + browser opens\n"
+            "./stop_dashboard.sh     # stop remote streamlit + close tunnel",
             language="bash",
         )
-        st.markdown(
-            "Open <http://localhost:8501> in your browser (SSH-tunnel that port "
-            "if Streamlit runs on a remote machine). Scenarios pre-load from "
-            "`$BALMOREL_ROOT`; head to **📂 Import Results** to add more via "
-            "upload or change the folder path on the fly."
+        st.caption(
+            "The script auto-discovers which login node holds your tmux "
+            "session via a state file in `/work3` (shared across all hpclogin "
+            "nodes), so you never have to remember whether you're on hpclogin1 "
+            "or hpclogin5. The session survives SSH disconnects — close your "
+            "laptop, come back tomorrow, the same dashboard is still running."
         )
-        st.markdown(
-            "**One-command remote launch (laptop → HPC):** if the dashboard runs "
-            "on a remote host, `./start_dashboard.sh` on your laptop SSHes in, runs "
-            "`./launch.sh` remotely, sets up the SSH tunnel, and opens your browser "
-            "— all in one go. On DTU HPC, the entry host is auto-derived from "
-            "`BALMOREL_DASH_PATH` (any `/work3/<user>/…` path implies `<user>@hpclogin1`), "
-            "and a state file in the shared filesystem re-routes to whichever node "
-            "actually holds the session. One env var is enough:"
-        )
-        st.code(
-            "# One-time, in your laptop shell ~/.bashrc / ~/.zshrc:\n"
-            "export BALMOREL_DASH_PATH=\"/work3/<your-user>/Balmorel/Balmorel_Results_Analysis_Tool\"\n"
-            "\n"
-            "# Then from your laptop clone — no host arg needed:\n"
-            "./start_dashboard.sh    # start + tunnel + browser\n"
-            "./stop_dashboard.sh     # stop remote + close tunnel",
-            language="bash",
-        )
+
+        with st.expander("Direct on-HPC launch (when SSH'd in interactively)"):
+            st.markdown(
+                "If you're already on HPC in an interactive shell and want to "
+                "run streamlit there directly:"
+            )
+            st.code(
+                "./launch.sh        # detached tmux session, terminal stays usable\n"
+                "./stop.sh          # stop it\n"
+                "\n"
+                "# Then from your laptop, in a separate terminal:\n"
+                "ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk",
+                language="bash",
+            )
+
         with st.expander("Other CLI options"):
             st.code(
-                "# See what's there:\n"
+                "# See what scenarios are present (no export):\n"
                 "python -m balmorel_dashboard --list-scenarios $BALMOREL_ROOT\n\n"
                 "# Limit to specific scenarios:\n"
                 "python -m balmorel_dashboard $BALMOREL_ROOT \\\n"
                 "    --scenario base --scenario 1_Scenario_Nordics\n\n"
-                "# One-shot GAMS path (no env var needed):\n"
-                "python -m balmorel_dashboard --gams-dir /appl/gams/50.4.1 $BALMOREL_ROOT\n\n"
-                "# Foreground launch (terminal occupied, live logs visible):\n"
+                "# Foreground streamlit (terminal occupied, live logs visible):\n"
                 "streamlit run streamlit_app.py --server.headless=true",
                 language="bash",
             )
