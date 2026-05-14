@@ -104,17 +104,17 @@ def tool_description() -> None:
             language="bash",
         )
         st.markdown(
-            "**Set environment variables** (add to `~/.bashrc` to persist across shells):"
+            "**Set the dashboard root** (add to `~/.bashrc` to persist across shells):"
         )
         st.code(
-            "export GAMS_SYSDIR=/path/to/gams          # for export only; e.g. /appl/gams/50.4.1 on DTU HPC\n"
             "export BALMOREL_ROOT=/path/to/Balmorel    # tells the dashboard which folder to auto-load",
             language="bash",
         )
         st.caption(
-            "`GAMS_SYSDIR` can be omitted if `gams` is already on `PATH`, or you can "
-            "pass `--gams-dir /path/to/gams` to the CLI at run time. `BALMOREL_ROOT` "
-            "is only needed for folder auto-load — leave unset to use the upload widget."
+            "GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`). Set "
+            "`GAMS_SYSDIR` or pass `--gams-dir /path/to/gams` only if you're on "
+            "a different cluster. `BALMOREL_ROOT` is only needed for folder "
+            "auto-load — leave unset to use the upload widget."
         )
         st.markdown(
             "**Export your scenarios** to portable `.zip` archives (one per scenario):"

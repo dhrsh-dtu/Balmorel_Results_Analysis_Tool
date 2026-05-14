@@ -61,8 +61,20 @@ INPUT_SYMBOLS = [
 
 # ── GAMS install resolution ─────────────────────────────────────────────────
 
+# Cluster-installed GAMS paths probed when nothing on PATH / env vars matches.
+# DTU HPC keeps system-wide installs under /appl/gams/; gamsapi >= 53.5 needs
+# 50.x, so we point at the current version explicitly. Update when DTU upgrades.
+_COMMON_HPC_GAMS_PATHS = [
+    "/appl/gams/50.4.1",   # DTU HPC
+]
+
+
 def _find_gams_system_dir(explicit: str | None) -> str:
-    """Resolve a GAMS install directory. Preference: arg > env var > PATH scan."""
+    """Resolve a GAMS install directory.
+
+    Preference: explicit arg > env var (GAMS_SYSDIR / GAMSDIR) > PATH scan >
+    well-known cluster paths.
+    """
     if explicit:
         if not (Path(explicit) / "optgams.def").is_file():
             raise FileNotFoundError(
@@ -77,6 +89,10 @@ def _find_gams_system_dir(explicit: str | None) -> str:
 
     for p in os.environ.get("PATH", "").split(os.pathsep):
         if p and (Path(p) / "optgams.def").is_file():
+            return p
+
+    for p in _COMMON_HPC_GAMS_PATHS:
+        if (Path(p) / "optgams.def").is_file():
             return p
 
     raise FileNotFoundError(

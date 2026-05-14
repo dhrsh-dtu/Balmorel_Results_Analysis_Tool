@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.11.0] — 2026-05-14
+
+Auto-detect GAMS at well-known cluster paths.
+
+### Changed
+- **Export CLI auto-detects `/appl/gams/50.4.1`** (DTU HPC's system-wide
+  install) after PATH / env-var lookup fails. DTU users no longer need to
+  export `GAMS_SYSDIR` in `~/.bashrc` — the CLI finds it automatically.
+- **`setup.sh` and `tests/test_exporter.py` mirror the same fallback** so
+  the post-install GAMS check passes and integration tests run without
+  `GAMS_SYSDIR` being set.
+- **README** and **Tool Description** drop `GAMS_SYSDIR` from the required
+  setup; mentioned only as an override for non-DTU clusters.
+
 ## [0.10.0] — 2026-05-14
 
 Remove the last shred of friction: one env var to set up the laptop side.

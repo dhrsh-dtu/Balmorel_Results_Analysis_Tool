@@ -58,22 +58,20 @@ cd Balmorel_Results_Analysis_Tool
 
 `setup.sh` also sanity-checks that GAMS is reachable (warns if not — the dashboard still works on already-exported zips even without GAMS).
 
-Activate the env, set your paths, export scenarios, and launch the dashboard:
+Activate the env, point at your Balmorel root, export scenarios, and launch the dashboard:
 
 ```bash
 conda activate balmorel-results-viz
 
-# 1. Tell the CLI where GAMS lives (only needed if `gams` isn't on PATH).
-#    On DTU HPC this is /appl/gams/50.4.1.
-export GAMS_SYSDIR=/path/to/gams
-
-# 2. Tell the dashboard which folder to auto-load (add both exports to ~/.bashrc to persist):
+# 1. Tell the dashboard which folder to auto-load (add to ~/.bashrc to persist):
 export BALMOREL_ROOT=/path/to/Balmorel
 
-# 3. Export Balmorel scenarios to portable zip archives:
+# 2. Export Balmorel scenarios to portable zip archives.
+#    The CLI auto-detects GAMS on DTU HPC (/appl/gams/50.4.1) — set
+#    GAMS_SYSDIR or pass --gams-dir only if you're elsewhere.
 python -m balmorel_dashboard $BALMOREL_ROOT
 
-# 4. Launch the dashboard in the background (terminal stays usable):
+# 3. Launch the dashboard in the background (terminal stays usable):
 ./launch.sh
 ```
 

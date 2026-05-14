@@ -71,10 +71,10 @@ echo
 echo "▶ Checking for a GAMS installation..."
 GAMS_FOUND=""
 
-# Scan PATH + GAMS_SYSDIR + GAMSDIR for the marker file optgams.def
+# Scan PATH + GAMS_SYSDIR + GAMSDIR + well-known cluster paths for optgams.def
 IFS_BACKUP="${IFS:-}"
 IFS=":"
-for d in ${PATH} "${GAMS_SYSDIR:-}" "${GAMSDIR:-}"; do
+for d in ${PATH} "${GAMS_SYSDIR:-}" "${GAMSDIR:-}" "/appl/gams/50.4.1"; do
     if [ -n "$d" ] && [ -f "$d/optgams.def" ]; then
         GAMS_FOUND="$d"
         break

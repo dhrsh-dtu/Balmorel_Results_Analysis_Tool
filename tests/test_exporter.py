@@ -35,6 +35,11 @@ def _has_gams() -> bool:
         v = os.environ.get(var)
         if v and (Path(v) / "optgams.def").is_file():
             return True
+    # Mirror the exporter's well-known cluster paths so the integration
+    # tests still run on DTU HPC without GAMS_SYSDIR being exported.
+    for p in ("/appl/gams/50.4.1",):
+        if (Path(p) / "optgams.def").is_file():
+            return True
     return False
 
 
