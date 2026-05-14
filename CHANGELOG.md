@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.1] — 2026-05-14
+
+### Changed
+- **`start_dashboard.sh` output now leads with the URL** and shows two
+  port-forwarding paths instead of presenting the SSH tunnel as the only
+  option:
+    - VS Code / Cursor / JetBrains Remote SSH users see "port auto-forwards
+      — just open the URL"
+    - Plain SSH terminal users see the ready-to-copy `ssh -L …` command
+- **Robust FQDN detection**: when `hostname --fqdn` returns a short name
+  (as it does on hpclogin1 — DNS config differs across DTU login nodes),
+  the script now appends `dnsdomainname` so the tunnel command always has
+  a resolvable hostname.
+
 ## [0.14.0] — 2026-05-14
 
 Scope cut: HPC-side only. Drop the laptop-side launcher entirely.

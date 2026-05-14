@@ -97,12 +97,27 @@ else
 EOF
 fi
 
-# ── Ready-to-copy SSH tunnel command for the laptop side ───────────────────
-HOSTNAME_FQDN="$(hostname --fqdn 2>/dev/null || hostname)"
+# ── Browser-access instructions ────────────────────────────────────────────
+# Resolve a usable hostname: hostname --fqdn returns short names on some
+# nodes, so fall back to appending `dnsdomainname` when there's no dot.
+HOSTNAME_FQDN="$(hostname --fqdn 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+case "$HOSTNAME_FQDN" in
+    *.*) ;;
+    *)
+        DNS_DOMAIN="$(dnsdomainname 2>/dev/null || true)"
+        if [ -n "$DNS_DOMAIN" ]; then
+            HOSTNAME_FQDN="${HOSTNAME_FQDN}.${DNS_DOMAIN}"
+        fi
+        ;;
+esac
+
 cat <<EOF
 
-➡  From your laptop, in a new terminal, set up the SSH tunnel:
+➡  Open in browser:  http://localhost:$PORT
+
+   • VS Code / Cursor / JetBrains Remote SSH: port $PORT auto-forwards —
+     just open the URL above (your IDE may also pop up an
+     "Open in Browser" notification when streamlit starts).
+   • Plain SSH from a terminal: first forward the port from your laptop:
        ssh -L $PORT:localhost:$PORT $USER@$HOSTNAME_FQDN
-   Then visit:
-       http://localhost:$PORT
 EOF
