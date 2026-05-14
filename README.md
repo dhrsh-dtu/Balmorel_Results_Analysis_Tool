@@ -83,35 +83,38 @@ Open <http://localhost:8501> (SSH-tunnel that port if Streamlit runs on a remote
 
 If you'd rather pass paths on the command line instead of using env vars, both work — `--gams-dir /path/to/gams` for the CLI, and the text input on Import Results for the folder. To run streamlit interactively (terminal occupied, but you see live startup logs), use `streamlit run streamlit_app.py --server.headless=true` instead of `./launch.sh`.
 
-#### 🔧 Path A' — launch a remote dashboard from your laptop (one command)
+#### 🔧 Path A' — start a remote dashboard from your laptop (one command)
 
-When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your laptop, `./launch_remote.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
+When the dashboard runs on a remote host (e.g. HPC) and you're sitting at your laptop, `./start_dashboard.sh` collapses **SSH tunnel + remote launch + browser open** into one command. Clone the repo on your laptop too, then:
 
-1. **One-time:** set your HPC details in your laptop's `~/.bashrc` (or `~/.zshrc`) and make sure SSH key auth is working:
-
-   ```bash
-   export BALMOREL_REMOTE_HOST="<user>@<hostname>"        # e.g. dhrsh@hpclogin1.hpccluster.dtu.dk
-   export BALMOREL_REMOTE_PATH="/path/to/Balmorel_Results_Analysis_Tool"
-   # export BALMOREL_REMOTE_PORT=8501                     # optional
-   ```
-
-2. **Launch:**
+1. **One-time:** set the remote repo path in your laptop's `~/.bashrc` (or `~/.zshrc`) and make sure SSH key auth is working:
 
    ```bash
-   ./launch_remote.sh    # on your laptop
+   export BALMOREL_DASH_PATH="/path/to/Balmorel_Results_Analysis_Tool"   # absolute path on the remote
+   # Optional:
+   # export BALMOREL_DASH_HOST="<user>@<hostname>"   # default host if you don't pass one explicitly
+   # export BALMOREL_DASH_PORT=8501
    ```
+
+2. **Start** — pass the host explicitly each time (DTU HPC's ssh round-robin means you may land on hpclogin1/2/3 depending on load):
+
+   ```bash
+   ./start_dashboard.sh dhrsh@hpclogin1.hpccluster.dtu.dk
+   ```
+
+   (Or, if you've set `BALMOREL_DASH_HOST`, just `./start_dashboard.sh`.)
 
    This SSHes in, runs `./launch.sh` on the remote (idempotent — won't double-start), opens an SSH tunnel in the background, and opens the dashboard in your default browser.
 
-3. **Stop:**
+3. **Stop** — same calling convention:
 
    ```bash
-   ./stop_remote.sh      # on your laptop
+   ./stop_dashboard.sh dhrsh@hpclogin1.hpccluster.dtu.dk
    ```
 
    Stops the remote streamlit and kills the local tunnel.
 
-Watch the remote logs at any time with `ssh $BALMOREL_REMOTE_HOST -t "tmux attach -t balmorel-dash"` (Ctrl+b then d to detach).
+Watch the remote logs at any time with `ssh <host> -t "tmux attach -t balmorel-dash"` (Ctrl+b then d to detach).
 
 ### 🤝 Path B — you're a collaborator (no Balmorel install)
 

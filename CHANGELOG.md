@@ -5,6 +5,30 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.8.0] — 2026-05-14
+
+Rename and reshape the laptop-side launcher for multi-user / multi-node use.
+
+### Changed
+- **`launch_remote.sh` → `start_dashboard.sh`**, **`stop_remote.sh` →
+  `stop_dashboard.sh`**. More natural verbs; consistent with the action
+  the script performs.
+- **Host is now a positional CLI argument** with env-var fallback. DTU
+  HPC's ssh round-robin can land you on hpclogin1/2/3 — pass the host
+  explicitly per-call instead of having to update `.bashrc` every time:
+
+  ```
+  ./start_dashboard.sh dhrsh@hpclogin2.hpccluster.dtu.dk
+  ```
+
+- **Env vars renamed** for consistency with `launch.sh`:
+  `BALMOREL_REMOTE_HOST` → `BALMOREL_DASH_HOST`,
+  `BALMOREL_REMOTE_PATH` → `BALMOREL_DASH_PATH`,
+  `BALMOREL_REMOTE_PORT` → `BALMOREL_DASH_PORT`.
+  (Old names removed — update your shell config.)
+- **README** Path A' and **Tool Description "I'm a Balmorel user" tab**
+  updated to show the new script names and arg-driven usage.
+
 ## [0.7.0] — 2026-05-14
 
 True one-command launch from the laptop: SSH tunnel + remote start + browser.
