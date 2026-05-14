@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.2] — 2026-05-14
+
+### Changed
+- **Tool Description "I'm a Balmorel user" tab restructured** to three
+  named phases: **1️⃣ Setup**, **2️⃣ Import Results**, **3️⃣ Run Dashboard**.
+  Phase 2 maps to `python -m balmorel_dashboard $BALMOREL_ROOT` (GDX → zip
+  conversion); wording covers both first-time and ongoing re-export. The
+  phase name "Import Results" matches the dashboard's `📂 Import Results`
+  page that consumes the zip archives, so users see the same term in two
+  consistent places.
+
 ## [0.14.1] — 2026-05-14
 
 ### Changed

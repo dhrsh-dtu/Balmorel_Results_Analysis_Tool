@@ -97,14 +97,13 @@ def tool_description() -> None:
 
     with tab_balm:
         st.markdown(
-            "You run Balmorel on HPC. After a one-time setup, the daily "
-            "workflow is: start the dashboard on HPC, copy the printed "
-            "`ssh -L` tunnel command into a laptop terminal, open the "
-            "browser. The streamlit session lives in tmux so it survives "
-            "SSH disconnects."
+            "You run Balmorel on HPC. Three steps: **Setup** once, **Import "
+            "Results** (turn your GDX outputs into portable zip archives — "
+            "re-run when scenarios change), then **Run Dashboard**. The "
+            "streamlit session lives in tmux so it survives SSH disconnects."
         )
 
-        st.markdown("#### 1️⃣ One-time setup on HPC")
+        st.markdown("#### 1️⃣ Setup")
         st.code(
             "# Clone + install (creates the balmorel-results-viz conda env):\n"
             "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
@@ -120,10 +119,25 @@ def tool_description() -> None:
         st.caption(
             "GAMS is auto-detected on DTU HPC (`/appl/gams/50.4.1`). On other "
             "clusters, also `export GAMS_SYSDIR=…` or pass `--gams-dir` at "
-            "export time."
+            "import time."
         )
 
-        st.markdown("#### 2️⃣ Daily — start the dashboard on HPC")
+        st.markdown("#### 2️⃣ Import Results")
+        st.markdown(
+            "Convert your Balmorel GDX outputs into portable `.zip` archives "
+            "(one per scenario). Run this when scenarios are new or change:"
+        )
+        st.code(
+            "python -m balmorel_dashboard $BALMOREL_ROOT",
+            language="bash",
+        )
+        st.caption(
+            "The archives land at `<scenario>/output/zip_files/MainResults_*.zip` "
+            "inside `$BALMOREL_ROOT`. The dashboard's **📂 Import Results** "
+            "page reads them from there and auto-loads them on launch."
+        )
+
+        st.markdown("#### 3️⃣ Run Dashboard")
         st.code(
             "./start_dashboard.sh    # detached tmux session, terminal stays usable\n"
             "./stop_dashboard.sh     # stop when done",
@@ -134,15 +148,7 @@ def tool_description() -> None:
             "to reach it: in **VS Code / Cursor / JetBrains Remote SSH** the "
             "port auto-forwards (just click the URL); from a **plain SSH "
             "terminal** copy the printed `ssh -L …` command into a new laptop "
-            "shell first. The tmux session survives SSH disconnects, so you "
-            "can close your laptop and reconnect the next day."
-        )
-
-        st.markdown("#### 3️⃣ Whenever Balmorel scenarios change")
-        st.markdown("Re-export the GDX files to portable zip archives on HPC:")
-        st.code(
-            "python -m balmorel_dashboard $BALMOREL_ROOT",
-            language="bash",
+            "shell first."
         )
 
         with st.expander("Other CLI options"):
