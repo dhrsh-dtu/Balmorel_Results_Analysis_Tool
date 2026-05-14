@@ -109,19 +109,22 @@ def tool_description() -> None:
 
     with tab_balm:
         with st.expander("1️⃣ Setup", expanded=False):
-            st.markdown("Clone, install, and add two lines to your HPC `~/.bashrc`:")
+            st.markdown("Clone, install, and setup Balmorel Path (on HPC).")
             st.code(
                 "# Clone + install (creates the balmorel-results-viz conda env):\n"
                 "git clone https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool.git\n"
                 "cd Balmorel_Results_Analysis_Tool\n"
                 "./setup.sh                          # Linux/macOS\n"
                 "\n"
-                "# Add these two lines to ~/.bashrc on HPC — set once, forget forever:\n"
-                "conda activate balmorel-results-viz                  # activate dashboard env\n"
-                "export BALMOREL_ROOT=/path/to/your/Balmorel/         # Results auto-load",
+                "# Activate environment\n"
+                "conda activate balmorel-results-viz\n"
+                "\n"
+                "# Setup Balmorel Path\n"
+                "export BALMOREL_ROOT=/path/to/your/Balmorel/",
                 language="bash",
             )
             st.caption(
+                "- Add the `conda activate` and `export` lines to `~/.bashrc` to persist across shells.\n"
                 "- Assumes `conda init <shell>` was run once during miniconda install. "
                 "If `conda activate` errors with `command not found`, run "
                 "`conda init bash` and reopen your shell.\n"

@@ -5,6 +5,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [semantic versioning](https://semver.org).
 
+## [0.14.13] — 2026-05-14
+
+### Changed
+- **Setup section copy refresh:**
+  - Intro now reads: "Clone, install, and setup Balmorel Path (on HPC)."
+  - Code block restructured with section-header comments
+    (`# Activate environment`, `# Setup Balmorel Path`) instead of
+    trailing inline comments. The "Add these two lines to ~/.bashrc"
+    line is gone — that context moved to a new first bullet in the
+    caption: "Add the `conda activate` and `export` lines to `~/.bashrc`
+    to persist across shells."
+
 ## [0.14.12] — 2026-05-14
 
 ### Changed
