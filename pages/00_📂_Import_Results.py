@@ -39,15 +39,9 @@ else:
     autoload_root = st.session_state.get("_autoload_done", "")
     autoload_count = st.session_state.get("_autoload_count", 0)
     if autoload_root and autoload_count > 0:
-        st.success(
-            f"✓ **{n_loaded} scenario(s) loaded** — {autoload_count} auto-loaded from "
-            f"`{autoload_root}`. Head to **📊 Overview** or any analysis page to explore."
-        )
+        st.success(f"✓ Auto-loaded {n_loaded} scenarios from Balmorel Root.")
     else:
-        st.success(
-            f"✓ **{n_loaded} scenario(s) loaded.** Head to **📊 Overview** or any "
-            "analysis page to explore."
-        )
+        st.success(f"✓ Loaded {n_loaded} scenario(s).")
 
 st.divider()
 
@@ -101,7 +95,9 @@ if all_scenarios:
     st.divider()
     st.markdown("### 📂 Loaded Results")
 
-    for name in all_scenarios:
+    # Show "base" first; alphabetical for the rest.
+    ordered = sorted(all_scenarios, key=lambda n: (n.lower() != "base", n.lower()))
+    for name in ordered:
         scn = data.get_scenario(name)
         if scn is None:
             continue
