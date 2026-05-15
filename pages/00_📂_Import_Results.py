@@ -26,10 +26,6 @@ if _DEFAULT_ROOT:
     data.autoload_from_root(_DEFAULT_ROOT)
 
 st.title("📂 Import Results")
-st.caption(
-    "Load Balmorel scenarios from a folder of zip archives or upload them directly, "
-    "then set the filters that apply across every analysis page."
-)
 
 # ── Status banner ───────────────────────────────────────────────────────────
 all_scenarios = data.list_scenarios()
@@ -37,8 +33,7 @@ n_loaded = len(all_scenarios)
 
 if n_loaded == 0:
     st.info(
-        "👋 No scenarios loaded yet. Use one of the sections below to get started — "
-        "either point at a folder of `.zip` archives on this machine, or drag-and-drop them."
+        "👋 No scenarios loaded — point at a folder or drag-and-drop `.zip` archives below."
     )
 else:
     autoload_root = st.session_state.get("_autoload_done", "")
@@ -58,7 +53,7 @@ st.divider()
 
 # ── 1. Load from folder ─────────────────────────────────────────────────────
 with st.expander(
-    "📂 **Load from folder (server-side)**",
+    "📂 **Load from Balmorel Root**",
     expanded=(n_loaded == 0),
 ):
     st.caption(
@@ -84,7 +79,7 @@ with st.expander(
 
 # ── 2. Upload archives ──────────────────────────────────────────────────────
 with st.expander(
-    "📤 **Upload scenario archive(s)**",
+    "📤 **Upload**",
     expanded=(n_loaded == 0),
 ):
     uploaded = st.file_uploader(
@@ -165,13 +160,3 @@ if all_scenarios:
             key="import_results_country_filter",
         )
 
-# ── 5. About ────────────────────────────────────────────────────────────────
-st.divider()
-with st.expander("ℹ About"):
-    st.markdown(
-        "Built on [pybalmorel](https://github.com/Mathias157/pybalmorel). "
-        "The dashboard reads `.zip` archives produced by the export CLI on a "
-        "machine with GAMS installed.\n\n"
-        "Source: [github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool]"
-        "(https://github.com/dhrsh-dtu/Balmorel_Results_Analysis_Tool)"
-    )
