@@ -54,13 +54,8 @@ st.divider()
 # ── 1. Load from folder ─────────────────────────────────────────────────────
 with st.expander(
     "📂 **Load from Balmorel Root**",
-    expanded=(n_loaded == 0),
+    expanded=False,
 ):
-    st.caption(
-        "Path on the machine running Streamlit (HPC or laptop). "
-        "Scans for `<root>/*/output/zip_files/MainResults_*.zip`. "
-        "Pre-filled from `$BALMOREL_ROOT` when set. Leave empty on cloud."
-    )
     root_input = st.text_input(
         "Balmorel root folder",
         value=_DEFAULT_ROOT,
@@ -76,11 +71,16 @@ with st.expander(
             if st.button("↻ Refresh folder", help="Re-scan for new or updated archives"):
                 st.session_state.pop("_autoload_done", None)
                 st.rerun()
+    st.caption(
+        "- Path on the machine running Streamlit (HPC or laptop).\n"
+        "- Scans for `<root>/*/output/zip_files/MainResults_*.zip`.\n"
+        "- Pre-filled from `$BALMOREL_ROOT` when set. Leave empty on cloud."
+    )
 
 # ── 2. Upload archives ──────────────────────────────────────────────────────
 with st.expander(
     "📤 **Upload**",
-    expanded=(n_loaded == 0),
+    expanded=False,
 ):
     uploaded = st.file_uploader(
         "Drop .zip archives here",
