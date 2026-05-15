@@ -281,6 +281,67 @@ def get_filtered(symbol: str, **filter_kwargs) -> pd.DataFrame:
     return apply_filters(get_table(symbol), **filter_kwargs)
 
 
+def render_page_filters(
+    page_key: str,
+    *,
+    show_year: bool = True,
+    show_countries: bool = True,
+) -> tuple[list[str], str | None, list[str]]:
+    """Render the standard Scenarios / Year / Countries filters in the sidebar.
+
+    Each page passes its own `page_key` (e.g. ``"capacity"``) so the widgets
+    remember the user's choices per-page via session-state keys
+    ``<page_key>_scn`` / ``_year`` / ``_cty``. The selected values are also
+    written to the global keys (``selected_scenarios``, ``selected_year``,
+    ``selected_countries``) so the existing helpers — ``selected_year()``,
+    ``apply_filters()``, ``get_filtered()`` — work unchanged.
+    """
+    all_scns = list_scenarios()
+    if not all_scns:
+        return [], None, []
+
+    st.sidebar.markdown("### 🔎 Filters")
+
+    scn_key = f"{page_key}_scn"
+    stored = st.session_state.get(scn_key)
+    if stored is not None:
+        st.session_state[scn_key] = [s for s in stored if s in all_scns]
+    selected = st.sidebar.multiselect(
+        "Scenarios", options=all_scns, default=all_scns, key=scn_key,
+    )
+    st.session_state["selected_scenarios"] = selected
+
+    year: str | None = None
+    if show_year:
+        years = available_years(selected) if selected else []
+        if years:
+            year_key = f"{page_key}_year"
+            if st.session_state.get(year_key) not in years:
+                st.session_state.pop(year_key, None)
+            year = st.sidebar.selectbox(
+                "Year", options=years, index=len(years) - 1, key=year_key,
+            )
+            st.session_state["selected_year"] = year
+
+    countries: list[str] = []
+    if show_countries:
+        all_countries = available_countries(selected) if selected else []
+        if all_countries:
+            cty_key = f"{page_key}_cty"
+            stored_cty = st.session_state.get(cty_key)
+            if stored_cty is not None:
+                st.session_state[cty_key] = [c for c in stored_cty if c in all_countries]
+            countries = st.sidebar.multiselect(
+                "Countries",
+                options=all_countries,
+                default=all_countries,
+                key=cty_key,
+            )
+            st.session_state["selected_countries"] = countries
+
+    return selected, year, countries
+
+
 # ── Summary helpers ─────────────────────────────────────────────────────────
 def scenario_summary(s: Scenario) -> dict:
     """Per-scenario numbers for KPI display. All values are floats or ints."""

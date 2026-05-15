@@ -6,8 +6,8 @@ Two paths to get data in (both always available):
   • Upload widget — drag-and-drop one or more `.zip` archives. Works
     everywhere, required on Streamlit Cloud.
 
-Filters (scenarios / year / countries) live at the bottom of this page and
-apply across every other dashboard page once set.
+Per-page filters (Scenarios / Year / Countries) live in the sidebar of each
+analysis page, not here.
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ with st.expander(
                 st.session_state.pop("_autoload_done", None)
                 st.rerun()
     st.caption(
-        "- Path on the machine running Streamlit (HPC or laptop).\n"
+        "- Path on the machine running Balmorel and Streamlit (HPC or laptop).\n"
         "- Scans for `<root>/*/output/zip_files/MainResults_*.zip`.\n"
         "- Pre-filled from `$BALMOREL_ROOT` when set. Leave empty on cloud."
     )
@@ -96,10 +96,10 @@ with st.expander(
 # Refresh the count after any new ingestions above
 all_scenarios = data.list_scenarios()
 
-# ── 3. Loaded scenarios list ────────────────────────────────────────────────
+# ── 3. Loaded results list ──────────────────────────────────────────────────
 if all_scenarios:
     st.divider()
-    st.markdown("### 📂 Loaded scenarios")
+    st.markdown("### 📂 Loaded Results")
 
     for name in all_scenarios:
         scn = data.get_scenario(name)
@@ -127,36 +127,4 @@ if all_scenarios:
         if c2.button("🗑", key=f"del_{name}", help="Remove this scenario from the session"):
             data.delete_scenario(name)
             st.rerun()
-
-# ── 4. Filters ──────────────────────────────────────────────────────────────
-if all_scenarios:
-    st.divider()
-    st.markdown("### 🔎 Filters")
-    st.caption("These filters apply across every analysis page.")
-
-    selected = st.multiselect(
-        "Scenarios to include",
-        options=all_scenarios,
-        default=all_scenarios,
-        key="import_results_scenario_filter",
-    )
-    st.session_state["selected_scenarios"] = selected
-
-    years = data.available_years(selected) if selected else []
-    if years:
-        st.session_state["selected_year"] = st.selectbox(
-            "Year",
-            options=years,
-            index=len(years) - 1,
-            key="import_results_year_filter",
-        )
-
-    countries = data.available_countries(selected) if selected else []
-    if countries:
-        st.session_state["selected_countries"] = st.multiselect(
-            "Countries",
-            options=countries,
-            default=countries,
-            key="import_results_country_filter",
-        )
 

@@ -11,6 +11,7 @@ from lib import data
 data.ensure_state()
 st.title("🔍 Raw Explorer")
 
+data.render_page_filters("raw_explorer")
 scns = data.selected_scenarios()
 if not scns:
     st.info("Upload at least one scenario archive in the sidebar to see content.")

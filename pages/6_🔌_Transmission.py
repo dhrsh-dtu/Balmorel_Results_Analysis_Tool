@@ -14,6 +14,7 @@ from lib import data, plots
 data.ensure_state()
 st.title("🔌 Transmission")
 
+data.render_page_filters("transmission")
 scns = data.selected_scenarios()
 if not scns:
     st.info("Upload at least one scenario archive in the sidebar to see content.")

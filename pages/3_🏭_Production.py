@@ -8,6 +8,7 @@ from lib import data, plots
 data.ensure_state()
 st.title("🏭 Production")
 
+data.render_page_filters("production")
 scns = data.selected_scenarios()
 if not scns:
     st.info("Upload at least one scenario archive in the sidebar to see content.")

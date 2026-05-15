@@ -22,6 +22,7 @@ from lib.theme import TECH_FUEL_COLORS
 data.ensure_state()
 st.title("📥 Model Inputs")
 
+data.render_page_filters("model_inputs")
 scns = data.selected_scenarios()
 if not scns:
     st.info("Upload at least one scenario archive in the sidebar to see content.")
