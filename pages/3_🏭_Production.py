@@ -59,6 +59,7 @@ filtered = pro_df if commodity_filter == "All" else pro_df[pro_df["Commodity"] =
 
 # ── Annual totals ────────────────────────────────────────────────────────────
 with annual_tab:
+    # FIX: On the production page, the y axis label (GW instead of TWh) and title (installed capacity instead of prod.) was wrong
     st.markdown("#### Annual production by commodity")
     if commodity_filter == "All":
         # Show faceted by commodity

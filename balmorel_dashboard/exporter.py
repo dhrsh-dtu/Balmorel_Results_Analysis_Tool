@@ -43,6 +43,7 @@ from pybalmorel import Balmorel
 
 
 # ── Input symbols we extract from all_endofmodel.gdx ───────────────────────
+# FIX: Maybe make a test to see if symbol exists - i had an error because AGKN2 does not exist in my setup
 INPUT_SYMBOLS = [
     # Identity & ranges
     "GDATA", "GDATASET", "GGG", "AGKN", "AGKN2", "ANNUITYCG",

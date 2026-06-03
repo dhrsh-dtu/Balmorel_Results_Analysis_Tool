@@ -24,6 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# NOTE: A dark mode could be cool :) ..it didn't work for me
 theme.apply()
 data.ensure_state()
 
