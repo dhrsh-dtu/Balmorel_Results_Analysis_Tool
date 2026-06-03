@@ -153,6 +153,10 @@ def tool_description() -> None:
             )
             st.caption(
                 "- Open `http://localhost:8501` in your laptop browser.\n"
+                # NOTE: Is this app really forwarding computer ports to the web..? That is a huge security hazard!
+                # If you don't know if it is, double check.
+                # The SSH option is what makes me think that this is actually what is happening, but i don't know,
+                # seems like something you should need administrative rights to do.
                 "- **VS Code / Cursor / JetBrains Remote SSH**: port auto-forwards — just click the URL.\n"
                 "- **Plain SSH**: first run `ssh -L 8501:localhost:8501 <user>@hpclogin1.hpccluster.dtu.dk` on your laptop."
             )

@@ -39,6 +39,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from pybalmorel import Balmorel
+
 
 # ── Input symbols we extract from all_endofmodel.gdx ───────────────────────
 INPUT_SYMBOLS = [
@@ -113,6 +115,9 @@ def discover_scenarios(balmorel_root: Path) -> list[tuple[str, Path]]:
     legacy root `zip_files/`, and any non-scenario directories (no `model/`
     subfolder).
     """
+    # FIX: This assumes that scenarios are called "MainResults.gdx"
+    # Use Balmorel.locate_results() or Balmorel.collect_reuslts() instead
+    # to allow for more MainResults*.gdx files.
     if not balmorel_root.is_dir():
         raise NotADirectoryError(f"{balmorel_root} is not a directory")
 
