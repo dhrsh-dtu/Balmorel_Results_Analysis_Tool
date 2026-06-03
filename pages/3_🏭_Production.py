@@ -111,6 +111,7 @@ with annual_tab:
 
 # ── By country ───────────────────────────────────────────────────────────────
 with country_tab:
+    # FIX: Maybe simply make this plot much longer, so you can actually see the plots
     st.markdown("#### Production by country")
     st.plotly_chart(
         plots.by_country_stacked_bar(
