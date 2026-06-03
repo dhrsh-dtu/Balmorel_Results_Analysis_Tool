@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 # FIX: Maybe replace the hardcoded dictionary below with this instead?
-from pybalmorel.format import tech_colours
+from pybalmorel.formatting import tech_colours
 
 # ── Color palette ────────────────────────────────────────────────────────────
 # Mirrors pybalmorel.formatting.balmorel_colours so figures match conventions.
