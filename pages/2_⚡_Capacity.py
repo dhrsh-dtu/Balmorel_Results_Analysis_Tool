@@ -142,6 +142,7 @@ with sto_tab:
             use_container_width=True,
         )
 
+        # FIX: Maybe simply make this plot much longer, so you can actually see the plots
         st.markdown("#### Storage capacity by country")
         st.plotly_chart(
             plots.by_country_stacked_bar(

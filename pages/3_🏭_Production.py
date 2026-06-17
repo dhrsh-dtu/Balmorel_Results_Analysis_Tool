@@ -59,6 +59,7 @@ filtered = pro_df if commodity_filter == "All" else pro_df[pro_df["Commodity"] =
 
 # ── Annual totals ────────────────────────────────────────────────────────────
 with annual_tab:
+    # FIX: On the production page, the y axis label (GW instead of TWh) and title (installed capacity instead of prod.) was wrong
     st.markdown("#### Annual production by commodity")
     if commodity_filter == "All":
         # Show faceted by commodity
@@ -111,6 +112,7 @@ with annual_tab:
 
 # ── By country ───────────────────────────────────────────────────────────────
 with country_tab:
+    # FIX: Maybe simply make this plot much longer, so you can actually see the plots
     st.markdown("#### Production by country")
     st.plotly_chart(
         plots.by_country_stacked_bar(

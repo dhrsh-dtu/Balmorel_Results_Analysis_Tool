@@ -65,6 +65,8 @@ st.divider()
 # ────────────────────────────────────────────────────────────────────────────
 # §2. Technology portfolio per sector
 # ────────────────────────────────────────────────────────────────────────────
+# FIX: If you fix the fact that several MainResults*.gdx files in one scenario 
+# folder can be loaded, make a comment here that these inputs come from just one all_endofmodel.gdx
 st.markdown("## 2. Technology portfolio")
 st.caption(
     "Catalog of generation units available to the model (from `GDATA` × `GGG`). "

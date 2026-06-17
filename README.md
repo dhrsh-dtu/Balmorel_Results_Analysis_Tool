@@ -7,7 +7,7 @@
 A simple post-analysis tool built on [pybalmorel](https://github.com/Mathias157/pybalmorel) for exploring results from [Balmorel](https://www.balmorel.com/) energy-system runs. Two paths to use it depending on whether you have Balmorel set up locally:
 
 - **🔧 Balmorel users:** export your scenarios to portable `.zip` archives, then launch the dashboard — it auto-loads everything from your Balmorel root, no uploads needed.
-- **🤝 Collaborators:** visit the live URL, drag in a `.zip` someone shared with you, explore. No install required.
+- **🤝 Collaborators:** visit the live URL, drag in a `.zip` someone shared with you, explore. For installation, see 'Quick start' below.
 
 🔗 **Live app:** _(coming soon — deployed to Streamlit Community Cloud, access by approval)_
 

@@ -9,6 +9,9 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import plotly.io as pio
 
+# FIX: Maybe replace the hardcoded dictionary below with this instead?
+from pybalmorel.formatting import tech_colours
+
 # ── Color palette ────────────────────────────────────────────────────────────
 # Mirrors pybalmorel.formatting.balmorel_colours so figures match conventions.
 # Duplicated here so the deployed app does not depend on pybalmorel.
